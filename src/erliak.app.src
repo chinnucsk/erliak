@@ -1,0 +1,17 @@
+{application, erliak,
+ [
+  {description, "An abstraction layer for transparent transport"},
+  {vsn, "1"},
+	{modules, [
+		erliak_app,
+		erliak_sup,
+		erliak_server
+						]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { erliak_app, []}},
+  {env, []}
+ ]}.
