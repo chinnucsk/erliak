@@ -1,3 +1,0 @@
-{application,erliak}.
-{packages,[]}.
-{modules,[erliak,erliak_http,erliak_pb,erliak_transport]}.
