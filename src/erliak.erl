@@ -1,7 +1,6 @@
 -module(erliak).
 -behaviour(gen_server).
-%% Why does riak-erlang-client not get this?
--compile({no_auto_import,[put/2]}).
+
 -export([start_link/0, start_link/1, start_link/2, start_link/3,
 	 start/2, start/3,
 	 stop/1,
@@ -21,15 +20,16 @@
 %% Internal types
 %% ====================================================================
 -type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
--type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's Protocol Buffers interface
+-type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's HTTP/PB interface
 
--type client_option() :: {transport, atom()}. %% allowed client options
--type client_options() :: [client_option()]. %% list of client options
+-type client_option() :: {transport, atom()}. %% Allowed client options
+-type client_options() :: [client_option()]. %% List of client options
 
 -type bucket() :: binary(). %% A bucket name
 -type key() :: binary(). %% A key name
 -type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
--type proplist() :: [tuple()].
+-type proplist() :: [tuple()]. %% Type for options
+
 %% ====================================================================
 %% Exports
 %% ====================================================================
@@ -64,7 +64,7 @@ start_link(Address, Port, Options) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Address, Port, Options], []).
 
 
-%% TODO similar behaviour for start as for start_link
+%% @TODO similar behaviour for start as for start_link
 %% @doc Create a process to talk with the riak server on Address:Port
 -spec start(address(), portnum()) -> {ok, pid()} | {error, term()}.
 start(Address, Port) ->
@@ -75,9 +75,9 @@ start(Address, Port) ->
 start(Address, Port, Options) ->
     gen_server:start({local, ?MODULE}, ?MODULE, [Address, Port, Options], []).
 
-%% TODO implement this
-%% @doc Disconnect all connections and stop the process.
-%% -spec stop() -> ok.
+%% @TODO implement this
+%% doc Disconnect all connections and stop the process.
+%%
 
 %% @doc Disconnect the socket and stop the process.
 -spec stop(pid()) -> ok.
@@ -90,7 +90,7 @@ stop(Client) ->
 
 %% @doc Ping the server
 %% @equiv ping(default_timeout(ping_timeout))
-%% TODO use an internal function for timeouts
+%% @TODO use an internal function for timeouts
 -spec ping() -> ok | {error, term()}.
 ping() ->
     ping(default_timeout).
@@ -132,7 +132,8 @@ get(Bucket, Key, Options, Timeout) ->
 -spec put(riakc_obj()) ->
 				 ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
 put(Object) ->
-	put(Object, []).
+	%% -compile({no_auto_import,[put/2]}).
+	?MODULE:put(Object, []).
 
 %% @doc Put the metadata/value in the object under bucket/key with options or timeout.
 %% @equiv put(Obj, Options, Timeout)

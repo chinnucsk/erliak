@@ -14,8 +14,11 @@
 
 behaviour_info(callbacks) ->
     [{e_connect,3},
-	 {e_disconnect,1},
-     {e_ping,2}];
+     {e_ping,2},
+	 {e_get/5},
+	 {e_put/4},
+	 {e_disconnect,1}
+	];
 
 behaviour_info(_Other) ->
     undefined.
