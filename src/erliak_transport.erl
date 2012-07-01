@@ -1,9 +1,11 @@
 -module(erliak_transport).
 
 %% Public exports
--export([connect/3,
-	 ping/2,
-	 disconnect/1]).
+-export([e_connect/3,
+	 e_ping/2,
+	 e_get/5,
+	 e_put/4,
+	 e_disconnect/1]).
 
 %% Behaviour export
 -export([behaviour_info/1]).
@@ -11,37 +13,58 @@
 -include("erliak.hrl").
 
 behaviour_info(callbacks) ->
-    [{disconnect,1},
-     {connect,3},
-     {ping,2}];
+    [{e_connect,3},
+	 {e_disconnect,1},
+     {e_ping,2}];
 
 behaviour_info(_Other) ->
     undefined.
 
+
+%% @doc returns the corresponding erliang transport module for Transport
+%% TODO a more generalized solution? check for existing modules matching erliak_Transport?
+-spec get_transport_module(atom()) -> atom().
+get_transport_module(Transport) ->
+	case Transport of
+		pb ->
+			erliak_pb;
+		http ->
+			erliak_http;
+		undefined ->
+			list_to_existing_atom("erliak_" ++ atom_to_list(?DEFAULT_TRANSPORT))
+	end.
+
 %% API functions
-connect(Address, Port, Options) ->
-    %% Extract the transport from the options
-    Transport = proplists:get_value(transport, Options, pb),
+e_connect(Address, Port, Options) ->
+    %% Extract (and remove) the transport from the options
+    Transport = proplists:get_value(transport, Options),
     Opts = proplists:delete(transport, Options),
+	TModule = get_transport_module(Transport),
     %% Perform connection based on the transport given
-    case Transport of
-    	pb ->
-    	    {ok, Connection} = erliak_pb:connect(Address, Port, Opts);
-    	http ->
-    	    {ok, Connection} = erliak_http:connect(Address, Port, Opts)
-    end,
+	{ok, Connection} = TModule:e_connect(Address, Port, Opts),
     %% Store this connection in state
-    State = #connection{transport = Transport, connection = Connection},
+    State = #connection{
+		connection = Connection,
+		transport_module = TModule
+	},
     {ok, State}.
 
-ping(#connection{transport=pb, connection=Conn}, Timeout) ->
-    erliak_pb:ping(Conn, Timeout); 
-ping(#connection{transport=http, connection=Conn}, Timeout) ->
-    erliak_http:ping(Conn, Timeout).
+e_ping(State, Timeout) ->
+	TModule = State#connection.transport_module,
+	Conn = State#connection.connection,
+	TModule:e_ping(Conn, Timeout).
 
-disconnect(#connection{transport=pb, connection=Conn}) ->
-    erliak_pb:disconnect(Conn);
-disconnect(#connection{transport=http, connection=Conn}) ->
-    erliak_http:disconnect(Conn).
-    
+e_get(State, Bucket, Key, Options, Timeout) ->
+	TModule = State#connection.transport_module,
+	Conn = State#connection.connection,
+	TModule:e_get(Conn, Bucket, Key, Options, Timeout).
 
+e_put(State, Object, Options, Timeout) ->
+	TModule = State#connection.transport_module,
+	Conn = State#connection.connection,
+	TModule:e_put(Conn, Object, Options, Timeout).
+
+e_disconnect(State) ->
+	TModule = State#connection.transport_module,
+	Conn = State#connection.connection,
+    TModule:e_disconnect(Conn).

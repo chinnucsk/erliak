@@ -1,0 +1,143 @@
+* create a client
+  erliak:pbclient()
+  erliak:httpclient()
+  or
+  erliak:start_link(Address, Port, Options)
+  Options = [{transport, http/pb}, ...]
+
+* create object using riakc_obj:new(Bucket, Key, Data, ContentType)
+* update object using riakc_obj:update_value(Object, NewData)
+
+
+************************************************************* put
+  put(Client, Object, Options) or put(Object, Options)
+
+  pb without Options
+     returns ok
+  pb Options (proplist)
+     {w, W} - minimum number of reponse nodes
+     {dw, DW} - minimum number of response nodes *after durably storing*
+     return_body - immediately do a get after the put return {ok, riakc_obj}
+
+     returns {ok, riakc_obj} or {error, term()}
+
+  http wihout Options
+     returns ok
+  http Options (proplist)
+     same as above
+************************************************************* end of put
+
+************************************************************* get
+  get(Client, Bucket, Key, Options) or get(Bucket, Key, Options)
+
+  pb Options
+       get(Pid, Bucket, Key, Options, Timeout | get_options())
+
+       {r, R} - the 'R' value to use for the read
+
+       returns {ok, riakc_obj} or {error, term()}
+       {error, notfound} if not found
+
+  http Options
+       r - the 'R' value to use for the read
+
+       returns {ok, riakc_obj} or {error, term()}
+       {error, notfound} if not found
+
+************************************************************* end of get
+
+************************************************************* delete
+riakc_pb_socket:delete(Pid, Bucket :: binary(), Key :: binary())
+riakc_pb_socket:delete(Pid, Bucket :: binary(), Key :: binary(), Options)
+
+  pb Options
+     {rw, RW} - the number of nodes to wait for responses from
+
+     returns ok
+
+rhc:delete(rhc(), Bucket :: binary(), Key :: binary())
+rhc:delete(rhc(), Bucket :: binary(), Key :: binary(), Options :: proplist())
+
+  http Options
+       same as aobe
+
+       returns ok or {error, Error}
+************************************************************* end of delete
+
+************************************************************* list_buckets
+
+rhc:list_buckets(rhc())
+riakc_pb_socket:list_buckets(Pid) - default timeouts
+riakc_pb_socket:list_buckets(Pid, Timeout) - Timeout + default timeout
+riakc_pb_socket:list_buckets(Pid, Timeout, CallTimeout)
+
+************************************************************* end of list_buckets
+
+************************************************************* list_keys
+
+riakc_pb_socket:list_keys(pid(), bucket()) - default timeout
+riakc_pb_socket:list_keys(pid(), bucket(), timeout())
+
+returns {ok, [key()]} | {error, term()}
+
+rhc:list_keys(rhc(), bucket())
+
+returns {ok, [key()]} | {error, term()}
+
+************************************************************* end of list_keys
+
+************************************************************* stream_list_keys
+riakc_pb_socket:stream_list_keys(pid(), bucket()) - default timeouts
+riakc_pb_socket:stream_list_keys(pid(), bucket(), Timeout) - default CallTimeout
+riakc_pb_socket:stream_list_keys(pid(), bucket(), Timeout, CallTimeout)
+
+Process receives these messages
+{ReqId::req_id(), {keys, [key()]}}
+{ReqId::req_id(), done}
+
+returns {ok, req_id()} | {error, term()}
+
+rhc:stream_list_keys(rhc(), bucket())
+
+Process receives these messages
+{reference(), {keys, [key()]}}
+{reference(), done}
+{reference(), {error, term()}}
+
+returns {ok, reference()} | {error, term()}
+
+************************************************************* end of stream_list_keys
+
+
+* do the two clients return data in the same format?
+
+* erliak keeps track of the client that was created, http or pb
+
+* http needs a url prefix http://IP:Port/Prefix/(<bucket>/<key>) (actually doesn't)
+
+* gen_server vs bare module?
+
+* return the created client
+  (i.e. rhc:create() and riakc_pb_socket:start_link())?
+  or store it internally in the gen_server state?
+
+* options for
+
+
+make a close(ConnRef) callback to close individual connections
+-opaque connection_ref().
+i.e. i would make each protocol impl. an impl. of a common behaviour (a connection)
+that way we call riak_protocol:close(ConnRef), which will be able to detect how to dispatch to the protocol implementation
+
+--- notes from skype chat jun 29
+* erliak_transport.erl module name in the state of the state
+
+* just copy over rhc and riakc_pb_socket and use that code instead of the dependencies
+
+**********************************************
+
+starting sasl & ibrowse?
+
+[ ok = application:start(A) || A <- [sasl, ibrowse] ].
+
+
