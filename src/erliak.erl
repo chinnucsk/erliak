@@ -2,13 +2,13 @@
 -behaviour(gen_server).
 
 -export([start_link/0, start_link/1, start_link/2, start_link/3,
-     start/2, start/3,
-     stop/1,
-     ping/0, ping/1,
-     get/2, get/3,
-     put/1, put/2, put/3
-    ]).
+         start/2, start/3,
+         stop/1,
+         ping/0, ping/1,
+         get/2, get/3,
+         put/1, put/2, put/3]).
 
+%% gen_server exports
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% Eunit testing

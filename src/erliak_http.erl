@@ -2,10 +2,10 @@
 -behaviour(erliak_transport).
 
 -export([e_connect/3,
-     e_ping/2,
-     e_get/5,
-     e_put/4,
-     e_disconnect/1]).
+         e_ping/2,
+         e_get/5,
+         e_put/4,
+         e_disconnect/1]).
 
 -include("erliak_http.hrl").
 
@@ -23,7 +23,7 @@ e_connect(Address, Port, Options) ->
     {ok, Connection}.
 
 e_ping(Connection, _Timeout) ->
-   ping(Connection).
+    ping(Connection).
 
 e_get(Connection, Bucket, Key, Options, _Timeout) ->
     get(Connection, Bucket, Key, Options).
@@ -32,7 +32,7 @@ e_put(Connection, Object, Options, _Timeout) ->
     put(Connection, Object, Options).
 
 e_disconnect(_Connection) ->
-   ok.
+    ok.
 
 %% ====================================================================
 %% Private (from riak-erlang-http-client)
