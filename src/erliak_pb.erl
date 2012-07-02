@@ -14,10 +14,10 @@
 -behaviour(gen_server).
 
 -export([e_connect/3,
-	 e_ping/2,
-	 e_get/5,
-	 e_put/4,
-	 e_disconnect/1]).
+     e_ping/2,
+     e_get/5,
+     e_put/4,
+     e_disconnect/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -28,24 +28,24 @@
 %% ====================================================================
 
 e_connect(default_address, default_port, Options) ->
-	e_connect(?DEFAULT_ADDRESS, ?DEFAULT_PORT, Options);
+    e_connect(?DEFAULT_ADDRESS, ?DEFAULT_PORT, Options);
 e_connect(Address, Port, Options) ->
     start_link(Address, Port, Options).
 
 e_ping(Connection, default_timeout) ->
-	ping(Connection);
+    ping(Connection);
 e_ping(Connection, Timeout) ->
     ping(Connection, Timeout).
 
 e_get(Connection, Bucket, Key, Options, default_timeout) ->
-	get(Connection, Bucket, Key, Options);
+    get(Connection, Bucket, Key, Options);
 e_get(Connection, Bucket, Key, Options, Timeout) ->
-	get(Connection, Bucket, Key, Options, Timeout).
+    get(Connection, Bucket, Key, Options, Timeout).
 
 e_put(Connection, Object, Options, default_timeout) ->
-	put(Connection, Object, Options);
+    put(Connection, Object, Options);
 e_put(Connection, Object, Options, Timeout) ->
-	put(Connection, Object, Options, Timeout).
+    put(Connection, Object, Options, Timeout).
 
 e_disconnect(Connection) ->
     stop(Connection).
@@ -1230,14 +1230,14 @@ send_mapred_req(Pid, MapRed, ClientPid, CallTimeout) ->
     ReqId = mk_reqid(),
     Timeout = proplists:get_value(timeout, MapRed, default_timeout(mapred_timeout)),
     Timeout1 = if
-		   is_integer(Timeout) ->
-		       %% Add an extra 100ms to the mapred timeout and use that
-		       %% for the socket timeout. This should give the
-		       %% map/reduce a chance to fail and let us know.
-		       Timeout + 100;
-		   true ->
-		       Timeout
-	       end,
+           is_integer(Timeout) ->
+               %% Add an extra 100ms to the mapred timeout and use that
+               %% for the socket timeout. This should give the
+               %% map/reduce a chance to fail and let us know.
+               Timeout + 100;
+           true ->
+               Timeout
+           end,
     gen_server:call(Pid, {req, ReqMsg, Timeout1, {ReqId, ClientPid}}, CallTimeout).
 
 %% @private
