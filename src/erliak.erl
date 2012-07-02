@@ -2,12 +2,12 @@
 -behaviour(gen_server).
 
 -export([start_link/0, start_link/1, start_link/2, start_link/3,
-	 start/2, start/3,
-	 stop/1,
-	 ping/0, ping/1,
-	 get/2, get/3,
-	 put/1, put/2, put/3
-	]).
+     start/2, start/3,
+     stop/1,
+     ping/0, ping/1,
+     get/2, get/3,
+     put/1, put/2, put/3
+    ]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
@@ -48,7 +48,7 @@ start_link() ->
 %% @equiv start_link(default_address, default_port, Options)
 -spec start_link(client_options()) -> {ok, pid()} | {error, term()}.
 start_link(Options) ->
-	start_link(default_address, default_port, Options).
+    start_link(default_address, default_port, Options).
 
 %% @doc Create a linked process to talk with the riak server on Address:Port
 %%      Client id will be assigned by the server.
@@ -106,42 +106,42 @@ ping(Timeout) ->
 %% @equiv get(Bucket, Key, [], default_timeout)
 -spec get(bucket(), key()) -> {ok, riakc_obj()} | {error, term()}.
 get(Bucket, Key) ->
-	get(Bucket, Key, [], default_timeout).
+    get(Bucket, Key, [], default_timeout).
 
 %% @doc Get bucket/key from the server specifying timeout.
 %%      Will return {error, notfound} if the key is not on the server.
 %% @equiv get(Pid, Bucket, Key, Options, Timeout)
 -spec get(bucket(), key(), TimeoutOrOptions::timeout() | proplist()) ->
-				 {ok, riakc_obj()} | {error, term() | unchanged}.
+                 {ok, riakc_obj()} | {error, term() | unchanged}.
 get(Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
-	get(Bucket, Key, [], Timeout);
+    get(Bucket, Key, [], Timeout);
 get(Bucket, Key, Options) ->
-	get(Bucket, Key, Options, default_timeout).
+    get(Bucket, Key, Options, default_timeout).
 
 %% @doc Get bucket/key from the server supplying options and timeout.
 %%      <code>{error, unchanged}</code> will be returned when the
 %%      <code>{if_modified, Vclock}</code> option is specified and the
 %%      object is unchanged.
 get(Bucket, Key, Options, Timeout) ->
-	gen_server:call(?MODULE, {client, get, Bucket, Key, Options, Timeout}).
+    gen_server:call(?MODULE, {client, get, Bucket, Key, Options, Timeout}).
 
 
 %% @doc Put the metadata/value in the object under bucket/key
 %% @equiv put(Obj, [])
 %% @see put/3
 -spec put(riakc_obj()) ->
-				 ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
+                 ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
 put(Object) ->
-	%% -compile({no_auto_import,[put/2]}).
-	?MODULE:put(Object, []).
+    %% -compile({no_auto_import,[put/2]}).
+    ?MODULE:put(Object, []).
 
 %% @doc Put the metadata/value in the object under bucket/key with options or timeout.
 %% @equiv put(Obj, Options, Timeout)
 %% @see put/3
 put(Object, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
-	put(Object, [], Timeout);
+    put(Object, [], Timeout);
 put(Object, Options) ->
-	put(Object, Options, default_timeout).
+    put(Object, Options, default_timeout).
 
 %% @doc Put the metadata/value in the object under bucket/key with
 %%      options and timeout. Put throws `siblings' if the
@@ -157,7 +157,7 @@ put(Object, Options) ->
 -spec put(riakc_obj(), proplist(), timeout()) ->
                  ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
 put(Object, Options, Timeout) ->
-	gen_server:call(?MODULE, {client, put, Object, Options, Timeout}).
+    gen_server:call(?MODULE, {client, put, Object, Options, Timeout}).
 
 %% ====================================================================
 %% gen_server callbacks
@@ -177,12 +177,12 @@ handle_call({client, ping, Timeout}, _From, State) ->
     {reply, Reply, State};
 
 handle_call({client, get, Bucket, Key, Options, Timeout}, _From, State) ->
-	Reply = erliak_transport:e_get(State, Bucket, Key, Options, Timeout),
-	{reply, Reply, State};
+    Reply = erliak_transport:e_get(State, Bucket, Key, Options, Timeout),
+    {reply, Reply, State};
 
 handle_call({client, put, Object, Options, Timeout}, _From, State) ->
-	Reply = erliak_transport:e_put(State, Object, Options, Timeout),
-	{reply, Reply, State};
+    Reply = erliak_transport:e_put(State, Object, Options, Timeout),
+    {reply, Reply, State};
 
 handle_call(stop, _From, State) ->
     erliak_transport:e_disconnect(State),
