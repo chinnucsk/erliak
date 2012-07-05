@@ -13,11 +13,11 @@
 -behaviour(erliak_transport).
 -behaviour(gen_server).
 
--export([e_connect/3,
-     e_ping/2,
-     e_get/5,
-     e_put/4,
-     e_disconnect/1]).
+-export([connect/3,
+     ping/2,
+     get/5,
+     put/4,
+     disconnect/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -27,27 +27,27 @@
 %% Public API
 %% ====================================================================
 
-e_connect(default_address, default_port, Options) ->
-    e_connect(?DEFAULT_ADDRESS, ?DEFAULT_PORT, Options);
-e_connect(Address, Port, Options) ->
+connect(default_address, default_port, Options) ->
+    connect(?DEFAULT_ADDRESS, ?DEFAULT_PORT, Options);
+connect(Address, Port, Options) ->
     start_link(Address, Port, Options).
 
-e_ping(Connection, default_timeout) ->
-    ping(Connection);
-e_ping(Connection, Timeout) ->
-    ping(Connection, Timeout).
+ping(Connection, default_timeout) ->
+    e_ping(Connection);
+ping(Connection, Timeout) ->
+    e_ping(Connection, Timeout).
 
-e_get(Connection, Bucket, Key, Options, default_timeout) ->
-    get(Connection, Bucket, Key, Options);
-e_get(Connection, Bucket, Key, Options, Timeout) ->
-    get(Connection, Bucket, Key, Options, Timeout).
+get(Connection, Bucket, Key, Options, default_timeout) ->
+    e_get(Connection, Bucket, Key, Options);
+get(Connection, Bucket, Key, Options, Timeout) ->
+    e_get(Connection, Bucket, Key, Options, Timeout).
 
-e_put(Connection, Object, Options, default_timeout) ->
-    put(Connection, Object, Options);
-e_put(Connection, Object, Options, Timeout) ->
-    put(Connection, Object, Options, Timeout).
+put(Connection, Object, Options, default_timeout) ->
+    e_put(Connection, Object, Options);
+put(Connection, Object, Options, Timeout) ->
+    e_put(Connection, Object, Options, Timeout).
 
-e_disconnect(Connection) ->
+disconnect(Connection) ->
     stop(Connection).
 
 
@@ -236,14 +236,14 @@ is_connected(Pid, Timeout) ->
     gen_server:call(Pid, is_connected, Timeout).
 
 %% @doc Ping the server
-%% @equiv ping(Pid, default_timeout(ping_timeout))
--spec ping(pid()) -> ok | {error, term()}.
-ping(Pid) ->
-    ping(Pid, default_timeout(ping_timeout)).
+%% @equiv e_ping(Pid, default_timeout(ping_timeout))
+-spec e_ping(pid()) -> ok | {error, term()}.
+e_ping(Pid) ->
+    e_ping(Pid, default_timeout(ping_timeout)).
 
 %% @doc Ping the server specifying timeout
--spec ping(pid(), timeout()) -> ok | {error, term()}.
-ping(Pid, Timeout) ->
+-spec e_ping(pid(), timeout()) -> ok | {error, term()}.
+e_ping(Pid, Timeout) ->
     gen_server:call(Pid, {req, rpbpingreq, Timeout}, infinity).
 
 %% @doc Get the client id for this connection
@@ -281,48 +281,48 @@ get_server_info(Pid, Timeout) ->
 
 %% @doc Get bucket/key from the server.
 %%      Will return {error, notfound} if the key is not on the serverk.
-%% @equiv get(Pid, Bucket, Key, [], default_timeout(get_timeout))
--spec get(pid(), bucket(), key()) -> {ok, riakc_obj()} | {error, term()}.
-get(Pid, Bucket, Key) ->
-    get(Pid, Bucket, Key, [], default_timeout(get_timeout)).
+%% @equiv e_get(Pid, Bucket, Key, [], default_timeout(get_timeout))
+-spec e_get(pid(), bucket(), key()) -> {ok, riakc_obj()} | {error, term()}.
+e_get(Pid, Bucket, Key) ->
+    e_get(Pid, Bucket, Key, [], default_timeout(get_timeout)).
 
 %% @doc Get bucket/key from the server specifying timeout.
 %%      Will return {error, notfound} if the key is not on the server.
-%% @equiv get(Pid, Bucket, Key, Options, Timeout)
--spec get(pid(), bucket(), key(), TimeoutOrOptions::timeout() |  get_options()) ->
+%% @equiv e_get(Pid, Bucket, Key, Options, Timeout)
+-spec e_get(pid(), bucket(), key(), TimeoutOrOptions::timeout() |  get_options()) ->
                  {ok, riakc_obj()} | {error, term() | unchanged}.
-get(Pid, Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
-    get(Pid, Bucket, Key, [], Timeout);
-get(Pid, Bucket, Key, Options) ->
-    get(Pid, Bucket, Key, Options, default_timeout(get_timeout)).
+e_get(Pid, Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
+    e_get(Pid, Bucket, Key, [], Timeout);
+e_get(Pid, Bucket, Key, Options) ->
+    e_get(Pid, Bucket, Key, Options, default_timeout(get_timeout)).
 
 %% @doc Get bucket/key from the server supplying options and timeout.
 %%      <code>{error, unchanged}</code> will be returned when the
 %%      <code>{if_modified, Vclock}</code> option is specified and the
 %%      object is unchanged.
--spec get(pid(), bucket(), key(), get_options(), timeout()) ->
+-spec e_get(pid(), bucket(), key(), get_options(), timeout()) ->
                  {ok, riakc_obj()} | {error, term() | unchanged}.
-get(Pid, Bucket, Key, Options, Timeout) ->
+e_get(Pid, Bucket, Key, Options, Timeout) ->
     Req = get_options(Options, #rpbgetreq{bucket = Bucket, key = Key}),
     gen_server:call(Pid, {req, Req, Timeout}, infinity).
 
 %% @doc Put the metadata/value in the object under bucket/key
-%% @equiv put(Pid, Obj, [])
-%% @see put/4
--spec put(pid(), riakc_obj()) ->
+%% @equiv e_put(Pid, Obj, [])
+%% @see e_put/4
+-spec e_put(pid(), riakc_obj()) ->
                  ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
-put(Pid, Obj) ->
-    put(Pid, Obj, []).
+e_put(Pid, Obj) ->
+    e_put(Pid, Obj, []).
 
 %% @doc Put the metadata/value in the object under bucket/key with options or timeout.
-%% @equiv put(Pid, Obj, Options, Timeout)
-%% @see put/4
--spec put(pid(), riakc_obj(), TimeoutOrOptions::timeout() | put_options()) ->
+%% @equiv e_put(Pid, Obj, Options, Timeout)
+%% @see e_put/4
+-spec e_put(pid(), riakc_obj(), TimeoutOrOptions::timeout() | put_options()) ->
                  ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
-put(Pid, Obj, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
-    put(Pid, Obj, [], Timeout);
-put(Pid, Obj, Options) ->
-    put(Pid, Obj, Options, default_timeout(put_timeout)).
+e_put(Pid, Obj, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
+    e_put(Pid, Obj, [], Timeout);
+e_put(Pid, Obj, Options) ->
+    e_put(Pid, Obj, Options, default_timeout(put_timeout)).
 
 %% @doc Put the metadata/value in the object under bucket/key with
 %%      options and timeout. Put throws `siblings' if the
@@ -335,9 +335,9 @@ put(Pid, Obj, Options) ->
 %%      `return_body' was specified.
 %% @throws siblings
 %% @end
--spec put(pid(), riakc_obj(), put_options(), timeout()) ->
+-spec e_put(pid(), riakc_obj(), put_options(), timeout()) ->
                  ok | {ok, riakc_obj()} | {ok, key()} | {error, term()}.
-put(Pid, Obj, Options, Timeout) ->
+e_put(Pid, Obj, Options, Timeout) ->
     Content = riak_pb_kv_codec:encode_content({riakc_obj:get_update_metadata(Obj),
                                                riakc_obj:get_update_value(Obj)}),
     Req = put_options(Options,
@@ -348,23 +348,23 @@ put(Pid, Obj, Options, Timeout) ->
     gen_server:call(Pid, {req, Req, Timeout}, infinity).
 
 %% @doc Delete the key/value
-%% @equiv delete(Pid, Bucket, Key, [])
--spec delete(pid(), bucket(), key()) -> ok | {error, term()}.
-delete(Pid, Bucket, Key) ->
-    delete(Pid, Bucket, Key, []).
+%% @equiv e_delete(Pid, Bucket, Key, [])
+-spec e_delete(pid(), bucket(), key()) -> ok | {error, term()}.
+e_delete(Pid, Bucket, Key) ->
+    e_delete(Pid, Bucket, Key, []).
 
 %% @doc Delete the key/value specifying timeout or options. <em>Note that the rw quorum is deprecated, use r and w.</em>
-%% @equiv delete(Pid, Bucket, Key, Options, Timeout)
--spec delete(pid(), bucket(), key(), TimeoutOrOptions::timeout() | delete_options()) ->
+%% @equiv e_delete(Pid, Bucket, Key, Options, Timeout)
+-spec e_delete(pid(), bucket(), key(), TimeoutOrOptions::timeout() | delete_options()) ->
                     ok | {error, term()}.
-delete(Pid, Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
-    delete(Pid, Bucket, Key, [], Timeout);
-delete(Pid, Bucket, Key, Options) ->
-    delete(Pid, Bucket, Key, Options, default_timeout(delete_timeout)).
+e_delete(Pid, Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
+    e_delete(Pid, Bucket, Key, [], Timeout);
+e_delete(Pid, Bucket, Key, Options) ->
+    e_delete(Pid, Bucket, Key, Options, default_timeout(delete_timeout)).
 
 %% @doc Delete the key/value with options and timeout. <em>Note that the rw quorum is deprecated, use r and w.</em>
--spec delete(pid(), bucket(), key(), delete_options(), timeout()) -> ok | {error, term()}.
-delete(Pid, Bucket, Key, Options, Timeout) ->
+-spec e_delete(pid(), bucket(), key(), delete_options(), timeout()) -> ok | {error, term()}.
+e_delete(Pid, Bucket, Key, Options, Timeout) ->
     Req = delete_options(Options, #rpbdelreq{bucket = Bucket, key = Key}),
     gen_server:call(Pid, {req, Req, Timeout}, infinity).
 
@@ -852,7 +852,7 @@ init([Address, Port, Options]) ->
             self() ! reconnect,
             {ok, State};
         false ->
-            case connect(State) of
+            case e_connect(State) of
                 {error, Reason} ->
                     {stop, {tcp, Reason}};
                 Ok ->
@@ -893,17 +893,17 @@ handle_call(is_connected, _From, State) ->
 handle_call({set_options, Options}, _From, State) ->
     {reply, ok, parse_options(Options, State)};
 handle_call(stop, _From, State) ->
-    _ = disconnect(State),
+    _ = e_disconnect(State),
     {stop, normal, ok, State}.
 
 %% @private
 handle_info({tcp_error, _Socket, Reason}, State) ->
     error_logger:error_msg("PBC client TCP error for ~p:~p - ~p\n",
                            [State#state.address, State#state.port, Reason]),
-    disconnect(State);
+    e_disconnect(State);
 
 handle_info({tcp_closed, _Socket}, State) ->
-    disconnect(State);
+    e_disconnect(State);
 
 %% Make sure the two Sock's match.  If a request timed out, but there was
 %% a response queued up behind it we do not want to process it.  Instead
@@ -938,19 +938,19 @@ handle_info({req_timeout, Ref}, State) ->
             case Ref == Active#request.ref of
                 true ->  %% Matches the current operation
                     NewState = maybe_reply(on_timeout(State#state.active, State)),
-                    disconnect(NewState#state{active = undefined});
+                    e_disconnect(NewState#state{active = undefined});
                 false ->
                     {noreply, remove_queued_request(Ref, State)}
             end
     end;
 handle_info(reconnect, State) ->
-    case connect(State) of
+    case e_connect(State) of
         {ok, NewState} ->
             {noreply, dequeue_request(NewState)};
         {error, Reason} ->
             %% Update the failed count and reschedule a reconnection
             NewState = State#state{failed = orddict:update_counter(Reason, 1, State#state.failed)},
-            disconnect(NewState)
+            e_disconnect(NewState)
     end;
 handle_info(_, State) ->
     {noreply, State}.
@@ -1284,7 +1284,7 @@ restart_req_timer(Request) ->
 
 %% @private
 %% Connect the socket if disconnected
-connect(State) when State#state.sock =:= undefined ->
+e_connect(State) when State#state.sock =:= undefined ->
     #state{address = Address, port = Port, connects = Connects} = State,
     case gen_tcp:connect(Address, Port,
                          [binary, {active, once}, {packet, 4}, {header, 1}],
@@ -1298,7 +1298,7 @@ connect(State) when State#state.sock =:= undefined ->
 
 %% @private
 %% Disconnect socket if connected
-disconnect(State) ->
+e_disconnect(State) ->
     %% Tell any pending requests we've disconnected
     _ = case State#state.active of
             undefined ->

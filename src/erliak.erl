@@ -166,26 +166,26 @@ put(Object, Options, Timeout) ->
 %% @private
 init([Address, Port, Options]) ->
     %% TODO REFACTOR?
-    {ok, State} = erliak_transport:e_connect(Address, Port, Options),
+    {ok, State} = erliak_transport:connect(Address, Port, Options),
     io:format("State = ~p~n", [State]),
     {ok, State}.
 
 
 %% Handling client API callbacks
 handle_call({client, ping, Timeout}, _From, State) ->
-    Reply = erliak_transport:e_ping(State, Timeout),
+    Reply = erliak_transport:ping(State, Timeout),
     {reply, Reply, State};
 
 handle_call({client, get, Bucket, Key, Options, Timeout}, _From, State) ->
-    Reply = erliak_transport:e_get(State, Bucket, Key, Options, Timeout),
+    Reply = erliak_transport:get(State, Bucket, Key, Options, Timeout),
     {reply, Reply, State};
 
 handle_call({client, put, Object, Options, Timeout}, _From, State) ->
-    Reply = erliak_transport:e_put(State, Object, Options, Timeout),
+    Reply = erliak_transport:put(State, Object, Options, Timeout),
     {reply, Reply, State};
 
 handle_call(stop, _From, State) ->
-    erliak_transport:e_disconnect(State),
+    erliak_transport:disconnect(State),
     {stop, normal, ok, State};
 
 handle_call(_Request, _From, State) ->

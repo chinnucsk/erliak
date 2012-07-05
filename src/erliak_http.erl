@@ -1,11 +1,11 @@
 -module(erliak_http).
 -behaviour(erliak_transport).
 
--export([e_connect/3,
-         e_ping/2,
-         e_get/5,
-         e_put/4,
-         e_disconnect/1]).
+-export([connect/3,
+         ping/2,
+         get/5,
+         put/4,
+         disconnect/1]).
 
 -include("erliak_http.hrl").
 
@@ -13,25 +13,25 @@
 %% Public API
 %% ====================================================================
 
-e_connect(default_address, default_port, _Options) ->
+connect(default_address, default_port, _Options) ->
     Connection = create(),
     {ok, Connection};
-e_connect(Address, Port, Options) ->
+connect(Address, Port, Options) ->
     Prefix = "riak",
     Connection = create(Address, Port, Prefix, Options),
     %% TODO build a lookup table from the links returned from getting http://Address:Port/
     {ok, Connection}.
 
-e_ping(Connection, _Timeout) ->
-    ping(Connection).
+ping(Connection, _Timeout) ->
+    e_ping(Connection).
 
-e_get(Connection, Bucket, Key, Options, _Timeout) ->
-    get(Connection, Bucket, Key, Options).
+get(Connection, Bucket, Key, Options, _Timeout) ->
+    e_get(Connection, Bucket, Key, Options).
 
-e_put(Connection, Object, Options, _Timeout) ->
-    put(Connection, Object, Options).
+put(Connection, Object, Options, _Timeout) ->
+    e_put(Connection, Object, Options).
 
-e_disconnect(_Connection) ->
+disconnect(_Connection) ->
     ok.
 
 %% ====================================================================
@@ -77,8 +77,8 @@ port(#rhc{port=Port}) -> Port.
 prefix(#rhc{prefix=Prefix}) -> Prefix.
 
 %% @doc Ping the server by requesting the "/ping" resource.
-%% @spec ping(rhc()) -> ok|{error, term()}
-ping(Rhc) ->
+%% @spec e_ping(rhc()) -> ok|{error, term()}
+e_ping(Rhc) ->
     Url = ping_url(Rhc),
     case request(get, Url, ["200","204"]) of
         {ok, _Status, _Headers, _Body} ->
@@ -105,9 +105,10 @@ get_server_info(Rhc) ->
             {error, Error}
     end.
 
-%% @equiv get(Rhc, Bucket, Key, [])
-get(Rhc, Bucket, Key) ->
-    get(Rhc, Bucket, Key, []).
+%% TODO case already handled
+%% @equiv e_get(Rhc, Bucket, Key, [])
+%% e_get(Rhc, Bucket, Key) ->
+%%     e_get(Rhc, Bucket, Key, []).
 
 %% @doc Get the objects stored under the given bucket and key.
 %%
@@ -119,9 +120,9 @@ get(Rhc, Bucket, Key) ->
 %%
 %%      The term in the second position of the error tuple will be
 %%      `notfound' if the key was not found.
-%% @spec get(rhc(), bucket(), key(), proplist())
+%% @spec e_get(rhc(), bucket(), key(), proplist())
 %%          -> {ok, riakc_obj()}|{error, term()}
-get(Rhc, Bucket, Key, Options) ->
+e_get(Rhc, Bucket, Key, Options) ->
     Qs = get_q_params(Rhc, Options),
     Url = make_url(Rhc, Bucket, Key, Qs),
     case request(get, Url, ["200", "300"]) of
@@ -133,9 +134,10 @@ get(Rhc, Bucket, Key, Options) ->
             {error, Error}
     end.
 
-%% @equiv put(Rhc, Object, [])
-put(Rhc, Object) ->
-    put(Rhc, Object, []).
+%% TODO case already handled
+%% @equiv e_put(Rhc, Object, [])
+%% e_put(Rhc, Object) ->
+%%     e_put(Rhc, Object, []).
 
 %% @doc Store the given object in Riak.
 %%
@@ -152,7 +154,7 @@ put(Rhc, Object) ->
 %%      </dl>
 %% @spec put(rhc(), riakc_obj(), proplist())
 %%         -> ok|{ok, riakc_obj()}|{error, term()}
-put(Rhc, Object, Options) ->
+e_put(Rhc, Object, Options) ->
     Qs = put_q_params(Rhc, Options),
     Bucket = riakc_obj:bucket(Object),
     Key = riakc_obj:key(Object),
@@ -176,8 +178,8 @@ put(Rhc, Object, Options) ->
     end.
 
 %% @equiv delete(Rhc, Bucket, Key, [])
-delete(Rhc, Bucket, Key) ->
-    delete(Rhc, Bucket, Key, []).
+e_delete(Rhc, Bucket, Key) ->
+    e_delete(Rhc, Bucket, Key, []).
 
 %% @doc Delete the given key from the given bucket.
 %%
@@ -187,7 +189,7 @@ delete(Rhc, Bucket, Key) ->
 %%          <dd>The 'RW' value to use for the delete</dd>
 %%      </dl>
 %% @spec delete(rhc(), bucket(), key(), proplist()) -> ok|{error, term()}
-delete(Rhc, Bucket, Key, Options) ->
+e_delete(Rhc, Bucket, Key, Options) ->
     Qs = delete_q_params(Rhc, Options),
     Url = make_url(Rhc, Bucket, Key, Qs),
     Headers = [{?HEAD_CLIENT, client_id(Rhc, Options)}],
