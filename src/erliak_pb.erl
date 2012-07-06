@@ -55,7 +55,6 @@ delete(Connection, Bucket, Key, Options, Timeout) ->
 disconnect(Connection) ->
     stop(Connection).
 
-
 %% ====================================================================
 %% Private (from riak-erlang-client)
 %% ====================================================================

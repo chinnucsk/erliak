@@ -5,16 +5,7 @@
 %% ===================================================================
 %% Unit Tests
 %% ===================================================================
-%reset_riak() ->
 
-test_address() ->
-    "127.0.0.1".
-test_port(pb) ->
-    8087;
-test_port(http) ->
-    8098.
-test_port() ->
-    8087.
 test_bucket() ->
     <<"b">>.
 test_key() ->
@@ -22,36 +13,22 @@ test_key() ->
 test_value() ->
     <<"v">>.
 
-setup_pb() ->
-    {ok, C} = erliak:start_link([{transport, pb}]),
-    C.
-setup_http() ->
-    application:start(sasl),
-    application:start(ibrowse),
-    {ok, C} = erliak:start_link([{transport, http}]),
-    C.
-setup_http2() ->
-    application:start(sasl),
-    application:start(ibrowse),
-    {ok, C} = erliak:start_link(test_address(), test_port(http), [{transport, http}]),
-    C.
-
+%% sasl and ibrowse started before and stopped after every test, eh?
 setup() ->
-    application:start(sasl),
-    application:start(ibrowse),
+    [ ok = application:start(A) || A <- [sasl, ibrowse] ],
     {ok, C} = erliak:start_link(),
     C.
 
 cleanup(C) ->
     erliak:delete(test_bucket(), test_key()),
     erliak:stop(C),
-    application:stop(sasl),
-    application:stop(ibrowse).
+    [ ok = application:stop(A) || A <- [sasl, ibrowse] ].
 
 pb_test_() ->
-    [{"pb ping",
+    Transport = atom_to_list(application:get_env(erliak, default_transport)),
+    [{Transport ++ " ping",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin		  
 		    ?assertEqual(pong, erliak:ping()),
@@ -59,7 +36,7 @@ pb_test_() ->
 		end)}},
      {"pb - simple put then read value of get",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    O0 = riakc_obj:new(test_bucket(), test_key(), test_value()),
@@ -69,7 +46,7 @@ pb_test_() ->
 		end)}},
      {"pb - put return_body compare get",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    O0 = riakc_obj:new(test_bucket(), test_key()),
@@ -80,7 +57,7 @@ pb_test_() ->
 		end)}},
      {"pb - put w. options compare to get w. timeout",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    O0 = riakc_obj:new(test_bucket(), test_key()),
@@ -91,7 +68,7 @@ pb_test_() ->
 		end)}},
      {"pb - put w. options compare to get w. options",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    Obj = riakc_obj:new(test_bucket(), test_key()),
@@ -102,7 +79,7 @@ pb_test_() ->
 		end)}},
      {"pb - put w. options & timeout compare to get w. options & timeout",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    Obj = riakc_obj:new(test_bucket(), test_key()),
@@ -113,7 +90,7 @@ pb_test_() ->
 		end)}},
      {"pb - put w. timeout and delete, ensure deleted",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    Obj = riakc_obj:new(test_bucket(), test_key(), test_value()),
@@ -123,7 +100,7 @@ pb_test_() ->
 		end)}},
      {"pb - put and delete w. timeout, ensure deleted",
       { setup,
-	fun setup_pb/0,
+	fun setup/0,
 	fun cleanup/1,
 	?_test( begin
 		    Obj = riakc_obj:new(test_bucket(), test_key(), test_value()),
@@ -131,6 +108,15 @@ pb_test_() ->
 		    erliak:delete(test_bucket(), test_key(), 500),
 		    ?assertEqual({error, notfound}, erliak:get(test_bucket(), test_key()))
 		end)}}
+    ].
+
+switch_protocol_test_() ->
+    [{"switch to http as default",
+      ?_test( begin
+		  ok = application:set_env(erliak, default_transport, http),
+		  ?assertEqual({ok, http}, application:get_env(erliak, default_transport))
+	      end
+	    )}
     ].
 
 http_test_() ->
