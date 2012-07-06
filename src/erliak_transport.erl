@@ -5,6 +5,7 @@
      ping/2,
      get/5,
      put/4,
+     delete/5,
      disconnect/1]).
 
 %% Behaviour export
@@ -17,6 +18,7 @@ behaviour_info(callbacks) ->
      {ping,2},
      {get,5},
      {put,4},
+     {delete,5},
      {disconnect,1}
     ];
 
@@ -44,7 +46,7 @@ connect(Address, Port, Options) ->
     Opts = proplists:delete(transport, Options),
     TModule = get_transport_module(Transport),
     %% Perform connection based on the transport given
-    {ok, Connection} = TModule:e_connect(Address, Port, Opts),
+    {ok, Connection} = TModule:connect(Address, Port, Opts),
     %% Store this connection in state
     State = #connection{
         connection = Connection,
@@ -55,19 +57,24 @@ connect(Address, Port, Options) ->
 ping(State, Timeout) ->
     TModule = State#connection.transport_module,
     Conn = State#connection.connection,
-    TModule:e_ping(Conn, Timeout).
+    TModule:ping(Conn, Timeout).
 
 get(State, Bucket, Key, Options, Timeout) ->
     TModule = State#connection.transport_module,
     Conn = State#connection.connection,
-    TModule:e_get(Conn, Bucket, Key, Options, Timeout).
+    TModule:get(Conn, Bucket, Key, Options, Timeout).
 
 put(State, Object, Options, Timeout) ->
     TModule = State#connection.transport_module,
     Conn = State#connection.connection,
-    TModule:e_put(Conn, Object, Options, Timeout).
+    TModule:put(Conn, Object, Options, Timeout).
+
+delete(State, Bucket, Key, Options, Timeout) ->
+    TModule = State#connection.transport_module,
+    Conn = State#connection.connection,
+    TModule:delete(Conn, Bucket, Key, Options, Timeout).
 
 disconnect(State) ->
     TModule = State#connection.transport_module,
     Conn = State#connection.connection,
-    TModule:e_disconnect(Conn).
+    TModule:disconnect(Conn).

@@ -5,17 +5,13 @@
          start/2, start/3,
          stop/1,
          ping/0, ping/1,
-         get/2, get/3,
-         put/1, put/2, put/3]).
+         get/2, get/3, get/4,
+         put/1, put/2, put/3,
+	 delete/2, delete/3, delete/4]).
 
 %% gen_server exports
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
       
-%% Eunit testing
--ifdef(TEST).
--include("../test/erliak_tests.hrl").
--endif.
-
 %% ====================================================================
 %% Internal types
 %% ====================================================================
@@ -159,6 +155,30 @@ put(Object, Options) ->
 put(Object, Options, Timeout) ->
     gen_server:call(?MODULE, {client, put, Object, Options, Timeout}).
 
+
+%% DELETE
+
+%% @doc Delete the key/value
+%% @equiv delete(Bucket, Key, [])
+-spec delete(bucket(), key()) -> ok | {error, term()}.
+delete(Bucket, Key) ->
+    delete(Bucket, Key, []).
+
+%% @doc Delete the key/value specifying timeout or options. <em>Note that the rw quorum is deprecated, use r and w.</em>
+%% @equiv delete(Bucket, Key, Options, Timeout)
+-spec delete(bucket(), key(), TimeoutOrOptions::timeout() | proplist()) ->
+                    ok | {error, term()}.
+delete(Bucket, Key, Timeout) when is_integer(Timeout); Timeout =:= infinity ->
+    delete(Bucket, Key, [], Timeout);
+delete(Bucket, Key, Options) ->
+    delete(Bucket, Key, Options, default_timeout).
+
+%% @doc Delete the key/value with options and timeout. <em>Note that the rw quorum is deprecated, use r and w.</em>
+-spec delete(bucket(), key(), proplist(), timeout()) -> ok | {error, term()}.
+delete(Bucket, Key, Options, Timeout) ->
+    gen_server:call(?MODULE, {client, delete, Bucket, Key, Options, Timeout}).
+
+
 %% ====================================================================
 %% gen_server callbacks
 %% ====================================================================
@@ -184,14 +204,13 @@ handle_call({client, put, Object, Options, Timeout}, _From, State) ->
     Reply = erliak_transport:put(State, Object, Options, Timeout),
     {reply, Reply, State};
 
+handle_call({client, delete, Bucket, Key, Options, Timeout}, _From, State) ->
+    Reply = erliak_transport:delete(State, Bucket, Key, Options, Timeout),
+    {reply, Reply, State};
+
 handle_call(stop, _From, State) ->
     erliak_transport:disconnect(State),
-    {stop, normal, ok, State};
-
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    io:format("DEFAULT HANDLE_CALL ~n"),
-    {reply, Reply, State}.
+    {stop, normal, ok, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.

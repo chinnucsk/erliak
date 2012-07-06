@@ -3,12 +3,11 @@
 %% ====================================================================
 %% Includes
 %% ====================================================================
--include("erliak_pb.hrl"). % Erliak specific header file
+-include("erliak_pb.hrl"). % Erliak_pb specific header file
 -include_lib("kernel/include/inet.hrl").
 -include_lib("riak_pb/include/riak_pb.hrl").
 -include_lib("riak_pb/include/riak_kv_pb.hrl").
 -include_lib("riak_pb/include/riak_pb_kv_codec.hrl").
-
 
 -behaviour(erliak_transport).
 -behaviour(gen_server).
@@ -17,6 +16,7 @@
      ping/2,
      get/5,
      put/4,
+     delete/5,
      disconnect/1]).
 
 %% gen_server callbacks
@@ -46,6 +46,11 @@ put(Connection, Object, Options, default_timeout) ->
     e_put(Connection, Object, Options);
 put(Connection, Object, Options, Timeout) ->
     e_put(Connection, Object, Options, Timeout).
+
+delete(Connection, Bucket, Key, Options, default_timeout) ->
+    e_delete(Connection, Bucket, Key, Options);
+delete(Connection, Bucket, Key, Options, Timeout) ->
+    e_delete(Connection, Bucket, Key, Options, Timeout).
 
 disconnect(Connection) ->
     stop(Connection).

@@ -5,6 +5,7 @@
          ping/2,
          get/5,
          put/4,
+	 delete/5,
          disconnect/1]).
 
 -include("erliak_http.hrl").
@@ -23,13 +24,17 @@ connect(Address, Port, Options) ->
     {ok, Connection}.
 
 ping(Connection, _Timeout) ->
-    e_ping(Connection).
+    ok = e_ping(Connection),
+    pong.
 
 get(Connection, Bucket, Key, Options, _Timeout) ->
     e_get(Connection, Bucket, Key, Options).
 
 put(Connection, Object, Options, _Timeout) ->
     e_put(Connection, Object, Options).
+
+delete(Connection, Bucket, Key, Options, _Timeout) ->
+    e_delete(Connection, Bucket, Key, Options).
 
 disconnect(_Connection) ->
     ok.

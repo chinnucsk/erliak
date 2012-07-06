@@ -1,6 +1,3 @@
-
-
-
 %% ====================================================================
 %% Defines
 %% ====================================================================
@@ -20,7 +17,7 @@
 %% ====================================================================
 
 -record(connection, {
-			transport_module :: module(), % Transport module
-		    connection :: connection_ref() % Connection that is active
+	  transport_module :: module(), % Transport module
+	  connection :: connection_ref() % Connection that is active
 			%% TODO more?
-		}).
+	 }).
