@@ -36,12 +36,8 @@ get_transport_module(Transport) ->
         http ->
             erliak_http;
         undefined ->	    
-	    case application:get_env(erliak, default_transport) of
-		{ok, DefaultTransport} -> 
-		    list_to_existing_atom("erliak_" ++ atom_to_list(DefaultTransport));
-		undefined ->
-		    list_to_existing_atom("erliak_" ++ atom_to_list(?DEFAULT_TRANSPORT))
-	    end            
+	    DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
+	    list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport))
     end.
 
 %% API functions

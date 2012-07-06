@@ -1,6 +1,6 @@
 -module(erliak_tests).
 -include_lib("eunit/include/eunit.hrl").
-
+%%-include("erliak.hrl").
 -compile(export_all).
 %% ===================================================================
 %% Unit Tests
@@ -24,9 +24,18 @@ cleanup(C) ->
     erliak:stop(C),
     [ ok = application:stop(A) || A <- [sasl, ibrowse] ].
 
+switch_protocol_to_pb_test_() ->
+    [{"switch to pb as default",
+      ?_test( begin
+		  ok = erliak_env:set_env(default_transport, pb),
+		  ?assertEqual(pb, erliak_env:get_env(default_transport))
+	      end
+	    )}
+    ].
+
 pb_test_() ->
-    Transport = atom_to_list(application:get_env(erliak, default_transport)),
-    [{Transport ++ " ping",
+    Transport = atom_to_list(erliak_env:get_env(default_transport)),
+    [{Transport ++ " - ping",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -34,7 +43,7 @@ pb_test_() ->
 		    ?assertEqual(pong, erliak:ping()),
 		    ?assertEqual(pong, erliak:ping(1000))
 		end)}},
-     {"pb - simple put then read value of get",
+     {Transport ++ " - simple put then read value of get",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -44,7 +53,7 @@ pb_test_() ->
 		    {ok, GO} = erliak:get(test_bucket(), test_key()),
 		    ?assertEqual(test_value(), riakc_obj:get_value(GO))
 		end)}},
-     {"pb - put return_body compare get",
+     {Transport ++ " - put return_body compare get",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -55,7 +64,7 @@ pb_test_() ->
 		    {ok, GO} = erliak:get(test_bucket(), test_key()),
 		    ?assertEqual(riakc_obj:get_contents(PO), riakc_obj:get_contents(GO))
 		end)}},
-     {"pb - put w. options compare to get w. timeout",
+     {Transport ++ " - put w. options compare to get w. timeout",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -66,7 +75,7 @@ pb_test_() ->
 		    {ok, GO} = erliak:get(test_bucket(), test_key(), 500),
 		    ?assertEqual(riakc_obj:get_contents(PO), riakc_obj:get_contents(GO))
 		end)}},
-     {"pb - put w. options compare to get w. options",
+     {Transport ++ " - put w. options compare to get w. options",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -77,7 +86,7 @@ pb_test_() ->
 		    {ok, GO} = erliak:get(test_bucket(), test_key(), [{r, 1}]),
 		    ?assertEqual(riakc_obj:get_contents(PO), riakc_obj:get_contents(GO))
 		end)}},
-     {"pb - put w. options & timeout compare to get w. options & timeout",
+     {Transport ++ " - put w. options & timeout compare to get w. options & timeout",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -88,7 +97,7 @@ pb_test_() ->
 		    {ok, GO} = erliak:get(test_bucket(), test_key(), [{r, 1}], 500),
 		    ?assertEqual(riakc_obj:get_contents(PO), riakc_obj:get_contents(GO))
 		end)}},
-     {"pb - put w. timeout and delete, ensure deleted",
+     {Transport ++ " - put w. timeout and delete, ensure deleted",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -98,7 +107,7 @@ pb_test_() ->
 		    erliak:delete(test_bucket(), test_key()),
 		    ?assertEqual({error, notfound}, erliak:get(test_bucket(), test_key()))
 		end)}},
-     {"pb - put and delete w. timeout, ensure deleted",
+     {Transport ++ " - put and delete w. timeout, ensure deleted",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
@@ -110,17 +119,19 @@ pb_test_() ->
 		end)}}
     ].
 
-switch_protocol_test_() ->
+
+switch_protocol_to_http_test_() ->
     [{"switch to http as default",
       ?_test( begin
-		  ok = application:set_env(erliak, default_transport, http),
-		  ?assertEqual({ok, http}, application:get_env(erliak, default_transport))
+		  ok = erliak_env:set_env(default_transport, http),
+		  ?assertEqual(http, erliak_env:get_env(default_transport))
 	      end
 	    )}
     ].
 
 http_test_() ->
-    [{"http ping",
+    Transport = atom_to_list(erliak_env:get_env(default_transport)),
+    [{Transport ++ " - ping",
      { setup,
        fun setup/0,
        fun cleanup/1,
