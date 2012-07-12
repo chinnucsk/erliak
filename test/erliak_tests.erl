@@ -6,6 +6,17 @@
 %% Unit Tests
 %% ===================================================================
 
+%% A set of tests is defined in test_suite/0. The application environment 
+%% variable default_transport controls which protocol is being used 
+%% as the default. This way we can ensure both clients run through the 
+%% same tests and behave consistently.
+%% Process
+%% 1. Set pb as default
+%% 2. Run test_suite()
+%% 3. Set http as default
+%% 4. Run test_suite()
+
+%% Test values
 test_bucket() ->
     <<"b">>.
 test_key() ->
@@ -24,16 +35,8 @@ cleanup(C) ->
     erliak:stop(C),
     [ ok = application:stop(A) || A <- [sasl, ibrowse] ].
 
-switch_protocol_to_pb_test_() ->
-    [{"switch to pb as default",
-      ?_test( begin
-		  ok = erliak_env:set_env(default_transport, pb),
-		  ?assertEqual(pb, erliak_env:get_env(default_transport))
-	      end
-	    )}
-    ].
-
-pb_test_() ->
+%% The test suite that both clients should pass
+test_suite() ->
     Transport = atom_to_list(erliak_env:get_env(default_transport)),
     [{Transport ++ " - ping",
       { setup,
@@ -42,7 +45,15 @@ pb_test_() ->
 	?_test( begin		  
 		    ?assertEqual(pong, erliak:ping()),
 		    ?assertEqual(pong, erliak:ping(1000))
-		end)}},
+		end)}},	 
+     {Transport ++ " - get server info",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin		  
+		    {ok, ServerInfo} = erliak:get_server_info(),
+		    [{node, _}, {server_version, _}] = lists:sort(ServerInfo)
+		end)}},	 
      {Transport ++ " - simple put then read value of get",
       { setup,
 	fun setup/0,
@@ -119,6 +130,17 @@ pb_test_() ->
 		end)}}
     ].
 
+switch_protocol_to_pb_test_() ->
+    [{"switch to pb as default",
+      ?_test( begin
+		  ok = erliak_env:set_env(default_transport, pb),
+		  ?assertEqual(pb, erliak_env:get_env(default_transport))
+	      end
+	    )}
+    ].
+    
+pb_test_() ->
+    test_suite().
 
 switch_protocol_to_http_test_() ->
     [{"switch to http as default",
@@ -130,15 +152,4 @@ switch_protocol_to_http_test_() ->
     ].
 
 http_test_() ->
-    Transport = atom_to_list(erliak_env:get_env(default_transport)),
-    [{Transport ++ " - ping",
-     { setup,
-       fun setup/0,
-       fun cleanup/1,
-       ?_test( begin		  
-		   ?assertEqual(pong, erliak:ping()),
-		   ?assertEqual(pong, erliak:ping(1000))
-	       end)}
-     }].
-
-
+    test_suite().
