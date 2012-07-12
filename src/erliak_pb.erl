@@ -17,7 +17,9 @@
      get/5,
      put/4,
      delete/5,
-     disconnect/1]).
+     disconnect/1,
+     get_server_info/2,
+     get_client_id/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -54,6 +56,16 @@ delete(Connection, Bucket, Key, Options, Timeout) ->
 
 disconnect(Connection) ->
     stop(Connection).
+
+get_server_info(Connection, default_timeout) ->
+    e_get_server_info(Connection);
+get_server_info(Connection, Timeout) ->
+    e_get_server_info(Connection, Timeout).
+
+get_client_id(Connection, default_timeout) ->
+    e_get_client_id(Connection);
+get_client_id(Connection, Timeout) ->    
+    e_get_client_id(Connection, Timeout).
 
 %% ====================================================================
 %% Private (from riak-erlang-client)
@@ -251,14 +263,14 @@ e_ping(Pid, Timeout) ->
     gen_server:call(Pid, {req, rpbpingreq, Timeout}, infinity).
 
 %% @doc Get the client id for this connection
-%% @equiv get_client_id(Pid, default_timeout(get_client_id_timeout))
--spec get_client_id(pid()) -> {ok, client_id()} | {error, term()}.
-get_client_id(Pid) ->
-    get_client_id(Pid, default_timeout(get_client_id_timeout)).
+%% @equiv e_get_client_id(Pid, default_timeout(get_client_id_timeout))
+-spec e_get_client_id(pid()) -> {ok, client_id()} | {error, term()}.
+e_get_client_id(Pid) ->
+    e_get_client_id(Pid, default_timeout(get_client_id_timeout)).
 
 %% @doc Get the client id for this connection specifying timeout
--spec get_client_id(pid(), timeout()) -> {ok, client_id()} | {error, term()}.
-get_client_id(Pid, Timeout) ->
+-spec e_get_client_id(pid(), timeout()) -> {ok, client_id()} | {error, term()}.
+e_get_client_id(Pid, Timeout) ->
     gen_server:call(Pid, {req, rpbgetclientidreq, Timeout}, infinity).
 
 %% @doc Set the client id for this connection
@@ -273,14 +285,14 @@ set_client_id(Pid, ClientId, Timeout) ->
     gen_server:call(Pid, {req, #rpbsetclientidreq{client_id = ClientId}, Timeout}, infinity).
 
 %% @doc Get the server information for this connection
-%% @equiv get_server_info(Pid, default_timeout(get_server_info_timeout))
--spec get_server_info(pid()) -> {ok, server_info()} | {error, term()}.
-get_server_info(Pid) ->
-    get_server_info(Pid, default_timeout(get_server_info_timeout)).
+%% @equiv e_get_server_info(Pid, default_timeout(get_server_info_timeout))
+-spec e_get_server_info(pid()) -> {ok, server_info()} | {error, term()}.
+e_get_server_info(Pid) ->
+    e_get_server_info(Pid, default_timeout(get_server_info_timeout)).
 
 %% @doc Get the server information for this connection specifying timeout
--spec get_server_info(pid(), timeout()) -> {ok, server_info()} | {error, term()}.
-get_server_info(Pid, Timeout) ->
+-spec e_get_server_info(pid(), timeout()) -> {ok, server_info()} | {error, term()}.
+e_get_server_info(Pid, Timeout) ->
     gen_server:call(Pid, {req, rpbgetserverinforeq, Timeout}, infinity).
 
 %% @doc Get bucket/key from the server.

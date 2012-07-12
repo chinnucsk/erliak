@@ -5,8 +5,10 @@
          ping/2,
          get/5,
          put/4,
-	 delete/5,
-         disconnect/1]).
+	     delete/5,
+         disconnect/1,
+         get_server_info/2,
+         get_client_id/2]).
 
 -include("erliak_http.hrl").
 
@@ -38,6 +40,12 @@ delete(Connection, Bucket, Key, Options, _Timeout) ->
 
 disconnect(_Connection) ->
     ok.
+
+get_server_info(Connection, _Timeout) ->
+    e_get_server_info(Connection).
+
+get_client_id(Connection, _Timeout) ->
+    e_get_client_id(Connection).
 
 %% ====================================================================
 %% Private (from riak-erlang-http-client)
@@ -93,14 +101,14 @@ e_ping(Rhc) ->
     end.
 
 %% @doc Get the client ID that this client will use when storing objects.
-%% @spec get_client_id(rhc()) -> {ok, string()}
-get_client_id(Rhc) ->
+%% @spec e_get_client_id(rhc()) -> {ok, string()}
+e_get_client_id(Rhc) ->
     {ok, client_id(Rhc, [])}.
 
 %% @doc Get some basic information about the server.  The proplist returned
 %%      should include `node' and `server_version' entries.
-%% @spec get_server_info(rhc()) -> {ok, proplist()}|{error, term()}
-get_server_info(Rhc) ->
+%% @spec e_get_server_info(rhc()) -> {ok, proplist()}|{error, term()}
+e_get_server_info(Rhc) ->
     Url = stats_url(Rhc),
     case request(get, Url, ["200"]) of
         {ok, _Status, _Headers, Body} ->
