@@ -2,11 +2,13 @@
 
 %% Public exports
 -export([connect/3,
-     ping/2,
-     get/5,
-     put/4,
-     delete/5,
-     disconnect/1]).
+     % ping/2,
+     % get/5,
+     % put/4,
+     % delete/5,
+     % disconnect/1,
+     % get_server_info/2,
+     handle/3]).
 
 %% Behaviour export
 -export([behaviour_info/1]).
@@ -19,7 +21,9 @@ behaviour_info(callbacks) ->
      {get,5},
      {put,4},
      {delete,5},
-     {disconnect,1}
+     {disconnect,1},
+     {get_server_info,2},
+     {get_client_id,2}
     ];
 
 behaviour_info(_Other) ->
@@ -27,7 +31,7 @@ behaviour_info(_Other) ->
 
 
 %% @doc returns the corresponding erliang transport module for Transport
-%% TODO a more generalized solution? check for existing modules matching erliak_Transport?
+%% TODO provide a notice to the user that we're falling back to ?DEFAULT_TRANSPORT
 -spec get_transport_module(atom()) -> atom().
 get_transport_module(Transport) ->
     case Transport of
@@ -36,8 +40,8 @@ get_transport_module(Transport) ->
         http ->
             erliak_http;
         undefined ->	    
-	    DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
-	    list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport))
+            DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
+            list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport))
     end.
 
 %% API functions
@@ -55,27 +59,41 @@ connect(Address, Port, Options) ->
     },
     {ok, State}.
 
-ping(State, Timeout) ->
+%% "Forwards" Function(Arguments) to the transport module set in State
+handle(State, Function, Arguments) ->    
     TModule = State#connection.transport_module,
     Conn = State#connection.connection,
-    TModule:ping(Conn, Timeout).
+    CallArgs = [Conn|Arguments],
+    erlang:apply(TModule, Function, CallArgs).
 
-get(State, Bucket, Key, Options, Timeout) ->
-    TModule = State#connection.transport_module,
-    Conn = State#connection.connection,
-    TModule:get(Conn, Bucket, Key, Options, Timeout).
+% Refactoring
 
-put(State, Object, Options, Timeout) ->
-    TModule = State#connection.transport_module,
-    Conn = State#connection.connection,
-    TModule:put(Conn, Object, Options, Timeout).
+% ping(State, Timeout) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:ping(Conn, Timeout).
 
-delete(State, Bucket, Key, Options, Timeout) ->
-    TModule = State#connection.transport_module,
-    Conn = State#connection.connection,
-    TModule:delete(Conn, Bucket, Key, Options, Timeout).
+% get(State, Bucket, Key, Options, Timeout) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:get(Conn, Bucket, Key, Options, Timeout).
 
-disconnect(State) ->
-    TModule = State#connection.transport_module,
-    Conn = State#connection.connection,
-    TModule:disconnect(Conn).
+% put(State, Object, Options, Timeout) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:put(Conn, Object, Options, Timeout).
+
+% delete(State, Bucket, Key, Options, Timeout) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:delete(Conn, Bucket, Key, Options, Timeout).
+
+% disconnect(State) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:disconnect(Conn).
+
+% get_server_info(State, Timeout) ->
+%     TModule = State#connection.transport_module,
+%     Conn = State#connection.connection,
+%     TModule:get_server_info(Conn, Timeout).
