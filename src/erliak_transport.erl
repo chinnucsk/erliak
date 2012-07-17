@@ -23,7 +23,9 @@ behaviour_info(callbacks) ->
      {delete,5},
      {disconnect,1},
      {get_server_info,2},
-     {get_client_id,2}
+     {get_client_id,2},
+     {list_buckets,3},
+     {list_keys,3}
     ];
 
 behaviour_info(_Other) ->
@@ -41,6 +43,11 @@ get_transport_module(Transport) ->
             erliak_http;
         undefined ->	    
             DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
+            list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport));
+        Other ->
+            io:format("*** Invalid transport protocol given (~p).~n", [Other]),
+            DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
+            io:format("*** Falling back to default transport (~p).~n", [DefTransport]),
             list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport))
     end.
 
