@@ -42,7 +42,9 @@ get_transport_module(Transport) ->
         http ->
             erliak_http;
         undefined ->	    
+            io:format("*** No transport protocol given.~n"),
             DefTransport = erliak_env:get_env(default_transport, ?DEFAULT_TRANSPORT),
+            io:format("*** Falling back to default transport (~p).~n", [DefTransport]),            
             list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport));
         Other ->
             io:format("*** Invalid transport protocol given (~p).~n", [Other]),

@@ -8,7 +8,9 @@
 	     delete/5,
          disconnect/1,
          get_server_info/2,
-         get_client_id/2]).
+         get_client_id/2,
+         list_buckets/3,
+         list_keys/3]).
 
 -include("erliak_http.hrl").
 
@@ -47,6 +49,29 @@ get_server_info(Connection, _Timeout) ->
 get_client_id(Connection, _Timeout) ->
     e_get_client_id(Connection).
 
+%% @doc List all buckets on the server
+%% <em>This is a potentially expensive operation and should not be used in production.</em>
+-spec list_buckets(#rhc{}, timeout(), timeout()) -> {ok, [bucket()]} | {error, term()}.
+list_buckets(Connection, _Timeout, _CallTimeout) ->
+    Url = list_buckets_url(Connection),
+    case request(get, Url, ["200","204"]) of
+        {ok, _Status, _Headers, Body} ->
+            {struct, Response} = mochijson2:decode(Body),
+            Buckets = proplists:get_value(<<"buckets">>, Response),
+            {ok, Buckets};
+        {error, Error} ->
+            {error, Error}
+    end.
+
+list_keys(Connection, Bucket, _Timeout) ->
+    e_list_keys(Connection, Bucket).
+
+%% ====================================================================
+%% Erliak utility
+%% ====================================================================
+list_buckets_url(Rhc) ->
+    binary_to_list(iolist_to_binary([root_url(Rhc), "/buckets?buckets=true"])).    
+
 %% ====================================================================
 %% Private (from riak-erlang-http-client)
 %% ====================================================================
@@ -54,7 +79,8 @@ get_client_id(Connection, _Timeout) ->
 %% @doc Create a client for connecting to the default port on localhost.
 %% @equiv create("127.0.0.1", 8098, "riak", [])
 create() ->
-    create("127.0.0.1", 8098, "riak", []).
+    create(?DEFAULT_ADDRESS, ?DEFAULT_PORT, "riak", []).
+    % create("127.0.0.1", 8098, "riak", []).
 
 %% @doc Create a client for connecting to a Riak node.
 %%
@@ -118,11 +144,6 @@ e_get_server_info(Rhc) ->
             {error, Error}
     end.
 
-%% TODO case already handled
-%% @equiv e_get(Rhc, Bucket, Key, [])
-%% e_get(Rhc, Bucket, Key) ->
-%%     e_get(Rhc, Bucket, Key, []).
-
 %% @doc Get the objects stored under the given bucket and key.
 %%
 %%      Allowed options are:
@@ -147,11 +168,6 @@ e_get(Rhc, Bucket, Key, Options) ->
             {error, Error}
     end.
 
-%% TODO case already handled
-%% @equiv e_put(Rhc, Object, [])
-%% e_put(Rhc, Object) ->
-%%     e_put(Rhc, Object, []).
-
 %% @doc Store the given object in Riak.
 %%
 %%      Allowed options are:
@@ -165,7 +181,7 @@ e_get(Rhc, Bucket, Key, Options) ->
 %%          response.  `ok' is returned if return_body is false.
 %%          `{ok, Object}' is returned if return_body is true.</dd>
 %%      </dl>
-%% @spec put(rhc(), riakc_obj(), proplist())
+%% @spec e_put(rhc(), riakc_obj(), proplist())
 %%         -> ok|{ok, riakc_obj()}|{error, term()}
 e_put(Rhc, Object, Options) ->
     Qs = put_q_params(Rhc, Options),
@@ -201,7 +217,7 @@ e_delete(Rhc, Bucket, Key) ->
 %%        <dt>`rw'</dt>
 %%          <dd>The 'RW' value to use for the delete</dd>
 %%      </dl>
-%% @spec delete(rhc(), bucket(), key(), proplist()) -> ok|{error, term()}
+%% @spec e_delete(rhc(), bucket(), key(), proplist()) -> ok|{error, term()}
 e_delete(Rhc, Bucket, Key, Options) ->
     Qs = delete_q_params(Rhc, Options),
     Url = make_url(Rhc, Bucket, Key, Qs),
@@ -213,13 +229,13 @@ e_delete(Rhc, Bucket, Key, Options) ->
 
 %% @doc Unsupported
 %% @throws not_implemented
-list_buckets(_Rhc) ->
+e_list_buckets(_Rhc) ->
     throw(not_implemented).
 
 %% @doc List the keys in the given bucket.
-%% @spec list_keys(rhc(), bucket()) -> {ok, [key()]}|{error, term()}
-list_keys(Rhc, Bucket) ->
-    {ok, ReqId} = stream_list_keys(Rhc, Bucket),
+%% @spec e_list_keys(rhc(), bucket()) -> {ok, [key()]}|{error, term()}
+e_list_keys(Rhc, Bucket) ->
+    {ok, ReqId} = e_stream_list_keys(Rhc, Bucket),
     rhc_listkeys:wait_for_listkeys(ReqId, ?DEFAULT_TIMEOUT).
 
 %% @doc Stream key lists to a Pid.  Messages sent to the Pid will
@@ -233,9 +249,9 @@ list_keys(Rhc, Bucket) ->
 %%         <dt>`{error, term()}'</dt>
 %%            <dd>an error occurred</dd>
 %%      </dl>
-%% @spec stream_list_keys(rhc(), bucket()) ->
+%% @spec e_stream_list_keys(rhc(), bucket()) ->
 %%          {ok, reference()}|{error, term()}
-stream_list_keys(Rhc, Bucket) ->
+e_stream_list_keys(Rhc, Bucket) ->
     Url = make_url(Rhc, Bucket, undefined, [{?Q_KEYS, ?Q_STREAM},
                                             {?Q_PROPS, ?Q_FALSE}]),
     StartRef = make_ref(),

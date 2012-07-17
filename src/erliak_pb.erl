@@ -4,10 +4,7 @@
 %% Includes
 %% ====================================================================
 -include("erliak_pb.hrl"). % Erliak_pb specific header file
--include_lib("kernel/include/inet.hrl").
--include_lib("riak_pb/include/riak_pb.hrl").
--include_lib("riak_pb/include/riak_kv_pb.hrl").
--include_lib("riak_pb/include/riak_pb_kv_codec.hrl").
+
 
 -behaviour(erliak_transport).
 -behaviour(gen_server).
@@ -19,7 +16,10 @@
      delete/5,
      disconnect/1,
      get_server_info/2,
-     get_client_id/2]).
+     get_client_id/2,
+     list_buckets/3,
+     list_keys/3
+     ]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -67,6 +67,18 @@ get_client_id(Connection, default_timeout) ->
 get_client_id(Connection, Timeout) ->    
     e_get_client_id(Connection, Timeout).
 
+list_buckets(Connection, default_timeout, default_call_timeout) ->
+    e_list_buckets(Connection);
+list_buckets(Connection, Timeout, default_call_timeout) ->
+    e_list_buckets(Connection, Timeout);
+list_buckets(Connection, Timeout, CallTimeout) ->    
+    e_list_buckets(Connection, Timeout, CallTimeout).
+
+list_keys(Connection, Bucket, default_timeout) ->
+    e_list_keys(Connection, Bucket);
+list_keys(Connection, Bucket, Timeout) ->
+    e_list_keys(Connection, Bucket, Timeout).
+
 %% ====================================================================
 %% Private (from riak-erlang-client)
 %% ====================================================================
@@ -78,20 +90,21 @@ get_client_id(Connection, Timeout) ->
 -define(FIRST_RECONNECT_INTERVAL, 100).
 -define(MAX_RECONNECT_INTERVAL, 30000).
 
--type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
--type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's Protocol Buffers interface
--type client_option()  :: queue_if_disconnected | {queue_if_disconnected, boolean()} |
-                   auto_reconnect | {auto_reconnect, boolean()}.
+% -type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
+% -type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's Protocol Buffers interface
+% -type client_option()  :: queue_if_disconnected | {queue_if_disconnected, boolean()} |
+%                    auto_reconnect | {auto_reconnect, boolean()}.
+
+
 %% Options for starting or modifying the connection:
 %% `queue_if_disconnected' when present or true will cause requests to
 %% be queued while the connection is down. `auto_reconnect' when
 %% present or true will automatically attempt to reconnect to the
 %% server if the connection fails or is lost.
--type client_options() :: [client_option()]. %% A list of client options.
--type client_id() :: binary(). %% A client identifier, used for differentiating client processes
--type bucket() :: binary(). %% A bucket name.
--type key() :: binary(). %% A key name.
--type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
+% -type client_options() :: [client_option()]. %% A list of client options.
+% -type client_id() :: binary(). %% A client identifier, used for differentiating client processes
+
+% -type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
 -type req_id() :: non_neg_integer(). %% Request identifier for streaming requests.
 -type rpb_req() :: atom() | tuple().
 -type ctx() :: any().
@@ -437,40 +450,40 @@ delete_obj(Pid, Obj, Options, Timeout) ->
 
 %% @doc List all buckets on the server.
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
-%% @equiv list_buckets(Pid, default_timeout(list_buckets_timeout))
--spec list_buckets(pid()) -> {ok, [bucket()]} | {error, term()}.
-list_buckets(Pid) ->
-    list_buckets(Pid, default_timeout(list_buckets_timeout)).
+%% @equiv e_list_buckets(Pid, default_timeout(list_buckets_timeout))
+-spec e_list_buckets(pid()) -> {ok, [bucket()]} | {error, term()}.
+e_list_buckets(Pid) ->
+    e_list_buckets(Pid, default_timeout(list_buckets_timeout)).
 
 %% @doc List all buckets on the server specifying server-side timeout.
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
-%% @equiv list_buckets(Pid, Timeout, default_timeout(list_buckets_call_timeout))
--spec list_buckets(pid(), timeout()) -> {ok, [bucket()]} | {error, term()}.
-list_buckets(Pid, Timeout) ->
-    list_buckets(Pid, Timeout, default_timeout(list_buckets_call_timeout)).
+%% @equiv e_list_buckets(Pid, Timeout, default_timeout(list_buckets_call_timeout))
+-spec e_list_buckets(pid(), timeout()) -> {ok, [bucket()]} | {error, term()}.
+e_list_buckets(Pid, Timeout) ->
+    e_list_buckets(Pid, Timeout, default_timeout(list_buckets_call_timeout)).
 
 %% @doc List all buckets on the server specifying server-side and local
 %%      call timeout.
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
--spec list_buckets(pid(), timeout(), timeout()) -> {ok, [bucket()]} |
+-spec e_list_buckets(pid(), timeout(), timeout()) -> {ok, [bucket()]} |
                                                    {error, term()}.
-list_buckets(Pid, Timeout, CallTimeout) ->
+e_list_buckets(Pid, Timeout, CallTimeout) ->
     gen_server:call(Pid, {req, rpblistbucketsreq, Timeout}, CallTimeout).
 
 %% @doc List all keys in a bucket
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
 %% @equiv list_keys(Pid, Bucket, default_timeout(list_keys_timeout))
--spec list_keys(pid(), bucket()) -> {ok, [key()]} | {error, term()}.
-list_keys(Pid, Bucket) ->
-    list_keys(Pid, Bucket, default_timeout(list_keys_timeout)).
+-spec e_list_keys(pid(), bucket()) -> {ok, [key()]} | {error, term()}.
+e_list_keys(Pid, Bucket) ->
+    e_list_keys(Pid, Bucket, default_timeout(list_keys_timeout)).
 
 %% @doc List all keys in a bucket specifying timeout. This is
-%% implemented using {@link stream_list_keys/3} and then waiting for
+%% implemented using {@link e_stream_list_keys/3} and then waiting for
 %% the results to complete streaming.
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
--spec list_keys(pid(), bucket(), timeout()) -> {ok, [key()]} | {error, term()}.
-list_keys(Pid, Bucket, Timeout) ->
-    case stream_list_keys(Pid, Bucket, Timeout) of
+-spec e_list_keys(pid(), bucket(), timeout()) -> {ok, [key()]} | {error, term()}.
+e_list_keys(Pid, Bucket, Timeout) ->
+    case e_stream_list_keys(Pid, Bucket, Timeout) of
         {ok, ReqId} ->
             wait_for_listkeys(ReqId, Timeout);
         Error ->
@@ -482,10 +495,10 @@ list_keys(Pid, Bucket, Timeout) ->
 %% ```    {ReqId::req_id(), {keys, [key()]}}
 %%        {ReqId::req_id(), done}'''
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
-%% @equiv stream_list_keys(Pid, Bucket, default_timeout(stream_list_keys_timeout))
--spec stream_list_keys(pid(), bucket()) -> {ok, req_id()} | {error, term()}.
-stream_list_keys(Pid, Bucket) ->
-    stream_list_keys(Pid, Bucket, default_timeout(stream_list_keys_timeout)).
+%% @equiv e_stream_list_keys(Pid, Bucket, default_timeout(stream_list_keys_timeout))
+-spec e_stream_list_keys(pid(), bucket()) -> {ok, req_id()} | {error, term()}.
+e_stream_list_keys(Pid, Bucket) ->
+    e_stream_list_keys(Pid, Bucket, default_timeout(stream_list_keys_timeout)).
 
 %% @doc Stream list of keys in the bucket to the calling process specifying server side
 %%      timeout.
@@ -493,10 +506,10 @@ stream_list_keys(Pid, Bucket) ->
 %% ```    {ReqId::req_id(), {keys, [key()]}}
 %%        {ReqId::req_id(), done}'''
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
-%% @equiv stream_list_keys(Pid, Bucket, Timeout, default_timeout(stream_list_keys_call_timeout))
--spec stream_list_keys(pid(), bucket(), timeout()) -> {ok, req_id()} | {error, term()}.
-stream_list_keys(Pid, Bucket, Timeout) ->
-    stream_list_keys(Pid, Bucket, Timeout, default_timeout(stream_list_keys_call_timeout)).
+%% @equiv e_stream_list_keys(Pid, Bucket, Timeout, default_timeout(stream_list_keys_call_timeout))
+-spec e_stream_list_keys(pid(), bucket(), timeout()) -> {ok, req_id()} | {error, term()}.
+e_stream_list_keys(Pid, Bucket, Timeout) ->
+    e_stream_list_keys(Pid, Bucket, Timeout, default_timeout(stream_list_keys_call_timeout)).
 
 %% @doc Stream list of keys in the bucket to the calling process specifying server side
 %%      timeout and local call timeout.
@@ -504,9 +517,9 @@ stream_list_keys(Pid, Bucket, Timeout) ->
 %% ```    {ReqId::req_id(), {keys, [key()]}}
 %%        {ReqId::req_id(), done}'''
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
--spec stream_list_keys(pid(), bucket(), timeout(), timeout()) -> {ok, req_id()} |
+-spec e_stream_list_keys(pid(), bucket(), timeout(), timeout()) -> {ok, req_id()} |
                                                                  {error, term()}.
-stream_list_keys(Pid, Bucket, Timeout, CallTimeout) ->
+e_stream_list_keys(Pid, Bucket, Timeout, CallTimeout) ->
     ReqMsg = #rpblistkeysreq{bucket = Bucket},
     ReqId = mk_reqid(),
     gen_server:call(Pid, {req, ReqMsg, Timeout, {ReqId, self()}}, CallTimeout).

@@ -28,18 +28,8 @@
 %% ====================================================================
 %% Internal types
 %% ==================================================================== 
--type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
--type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's HTTP/PB interface
 
--type client_option() :: {transport, atom()}. %% Allowed client options
--type client_options() :: [client_option()]. %% List of client options
-
--type bucket() :: binary(). %% A bucket name
--type key() :: binary(). %% A key name
--type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
--type proplist() :: [tuple()]. %% Type for options
-
--type client_id() :: binary() | string().
+-include("erliak.hrl").
 
 %% ====================================================================
 %% Exports
@@ -211,9 +201,6 @@ get_client_id() ->
 get_client_id(Timeout) ->
     gen_server:call(?MODULE, {client, get_client_id, [Timeout]}, infinity).
 
-
-% list_buckets/0, list_buckets/1, list_buckets/2,
-%          list_keys/1, list_keys/2,
 %          stream_list_keys/1, stream_list_keys/2, stream_list_keys/3,
 %          get_bucket/1, get_bucket/2, get_bucket/3,
 %          set_bucket/2, set_bucket/3, set_bucket/4,
