@@ -10,7 +10,9 @@
          get_server_info/2,
          get_client_id/2,
          list_buckets/3,
-         list_keys/3]).
+         list_keys/3,
+         stream_list_keys/4,
+         get_bucket/4]).
 
 -include("erliak_http.hrl").
 
@@ -65,6 +67,20 @@ list_buckets(Connection, _Timeout, _CallTimeout) ->
 
 list_keys(Connection, Bucket, _Timeout) ->
     e_list_keys(Connection, Bucket).
+
+%% TODO needs to know the PID of the calling process to be able to forward the 
+%%  messages received to it
+stream_list_keys(Connection, Bucket, _Timeout, _CallTimeout) ->
+    % io:format("erliak_http stream_list_keys My self() ~p~n", [self()]),
+    A = e_stream_list_keys(Connection, Bucket),
+    %%io:format("erliak_http stream_list_keys My self() ~p~n", [Connection#]),
+    % timer:sleep(500),
+    % MB = erlang:process_info(self(),[message_queue_len,messages]),
+    % io:format("MB ~p~n", [MB]),
+    A.
+
+get_bucket(Connection, Bucket, _Timeout, _CallTimeout) ->    
+    e_get_bucket(Connection, Bucket).
 
 %% ====================================================================
 %% Erliak utility
@@ -255,6 +271,7 @@ e_stream_list_keys(Rhc, Bucket) ->
     Url = make_url(Rhc, Bucket, undefined, [{?Q_KEYS, ?Q_STREAM},
                                             {?Q_PROPS, ?Q_FALSE}]),
     StartRef = make_ref(),
+    io:format("erliak_http e_stream_list_keys self() ~p~n", [self()]),
     Pid = spawn(rhc_listkeys, list_keys_acceptor, [self(), StartRef]),
     case request_stream(Pid, get, Url) of
         {ok, ReqId}    ->
@@ -264,8 +281,8 @@ e_stream_list_keys(Rhc, Bucket) ->
     end.
 
 %% @doc Get the properties of the given bucket.
-%% @spec get_bucket(rhc(), bucket()) -> {ok, proplist()}|{error, term()}
-get_bucket(Rhc, Bucket) ->
+%% @spec e_get_bucket(rhc(), bucket()) -> {ok, proplist()}|{error, term()}
+e_get_bucket(Rhc, Bucket) ->
     Url = make_url(Rhc, Bucket, undefined, [{?Q_KEYS, ?Q_FALSE}]),
     case request(get, Url, ["200"]) of
         {ok, "200", _Headers, Body} ->

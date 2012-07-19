@@ -66,6 +66,7 @@ list_keys_acceptor(Pid, PidRef) ->
 %% @doc main loop for ibrowse response handling - parses response and
 %%      sends messaged to client Pid
 list_keys_acceptor(Pid,PidRef,IbrowseRef,ParseState) ->
+    io:format("list_keys_acceptor send to ~p~n", [Pid]),
     receive
         {ibrowse_async_response_end, IbrowseRef} ->
             case is_empty(ParseState) of

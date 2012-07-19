@@ -11,9 +11,9 @@
          get_server_info/0, get_server_info/1,
          get_client_id/0, get_client_id/1,
          list_buckets/0, list_buckets/1, list_buckets/2,
-         list_keys/1, list_keys/2
-         % stream_list_keys/1, stream_list_keys/2, stream_list_keys/3,
-         % get_bucket/1, get_bucket/2, get_bucket/3,
+         list_keys/1, list_keys/2,
+         stream_list_keys/1, stream_list_keys/2, stream_list_keys/3,
+         get_bucket/1, get_bucket/2, get_bucket/3
          % set_bucket/2, set_bucket/3, set_bucket/4,
          % mapred/2, mapred/3, mapred/4,
          % mapred_stream/3, mapred_stream/4, mapred_stream/5,
@@ -21,6 +21,9 @@
          % mapred_bucket_stream/4, mapred_bucket_stream/5,
          % search/2, search/4, search/5
          ]).
+
+%% debug
+-export([do/1]).
 
 %% gen_server exports
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -31,6 +34,22 @@
 
 -include("erliak.hrl").
 
+do(A) ->
+    {ok, C} = erliak:start_link([{transport, http}]),
+    {ok, Ref} = erliak:stream_list_keys(A),
+    MB = erlang:process_info(self(),[message_queue_len,messages]),
+    io:format("MB ~p~n", [MB]),
+    io:format("My self() ~p~n", [self()]),
+    receive
+        A ->
+            io:format("*** ~p~n", [A])
+    after
+        1000 ->
+            io:format("*** timeout~n")
+    end.
+    %%erliak:stop(C).
+    
+
 %% ====================================================================
 %% Exports
 %% ====================================================================
@@ -40,7 +59,7 @@
 %%      Client id will be assigned by the server.
 %% @equiv start_link(default_address, default_port, [])
 -spec start_link() -> {ok, pid()} | {error, term()}.
-start_link() ->
+start_link() ->    
     start_link(default_address, default_port, []).
 
 %% @doc Create a linked process to talk with the riak server on the default
@@ -62,6 +81,7 @@ start_link(Address, Port) ->
 %%      Client id will be assigned by the server.
 -spec start_link(address(), portnum(), client_options()) -> {ok, pid()} | {error, term()}.
 start_link(Address, Port, Options) ->
+    io:format("start_link self() ~p~n", [self()]),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Address, Port, Options], []).
 
 
@@ -201,15 +221,6 @@ get_client_id() ->
 get_client_id(Timeout) ->
     gen_server:call(?MODULE, {client, get_client_id, [Timeout]}, infinity).
 
-%          stream_list_keys/1, stream_list_keys/2, stream_list_keys/3,
-%          get_bucket/1, get_bucket/2, get_bucket/3,
-%          set_bucket/2, set_bucket/3, set_bucket/4,
-%          mapred/2, mapred/3, mapred/4,
-%          mapred_stream/3, mapred_stream/4, mapred_stream/5,
-%          mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
-%          mapred_bucket_stream/4, mapred_bucket_stream/5,
-%          search/2, search/4, search/5
-
 %% @doc List all buckets on the server.
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
 %% @equiv list_buckets(default_timeout)
@@ -247,6 +258,66 @@ list_keys(Bucket) ->
 list_keys(Bucket, Timeout) ->
     gen_server:call(?MODULE, {client, list_keys, [Bucket, Timeout]}, infinity).
 
+%% @doc Stream list of keys in the bucket to the calling process.  The
+%%      process receives these messages.
+%% ```    {ReqId::req_id(), {keys, [key()]}}
+%%        {ReqId::req_id(), done}'''
+%% <em>This is a potentially expensive operation and should not be used in production.</em>
+%% @equiv stream_list_keys(Bucket, default_timeout)
+-spec stream_list_keys(bucket()) -> {ok, req_id()} | {ok, reference()} | {error, term()}.
+stream_list_keys(Bucket) ->
+    stream_list_keys(Bucket, default_timeout).
+
+%% @doc Stream list of keys in the bucket to the calling process specifying server side
+%%      timeout.
+%%      The process receives these messages.
+%% ```    {ReqId::req_id(), {keys, [key()]}}
+%%        {ReqId::req_id(), done}'''
+%% <em>This is a potentially expensive operation and should not be used in production.</em>
+%% @equiv stream_list_keys(Bucket, Timeout, default_call_timeout)
+-spec stream_list_keys(bucket(), timeout()) -> {ok, req_id()} | {ok, reference()} | {error, term()}.
+stream_list_keys(Bucket, Timeout) ->
+    stream_list_keys(Bucket, Timeout, default_call_timeout).
+
+%% @doc Stream list of keys in the bucket to the calling process specifying server side
+%%      timeout and local call timeout.
+%%      The process receives these messages.
+%% ```    {ReqId::req_id(), {keys, [key()]}}
+%%        {ReqId::req_id(), done}'''
+%% <em>This is a potentially expensive operation and should not be used in production.</em>
+-spec stream_list_keys(bucket(), timeout(), timeout()) -> {ok, req_id()} |
+                                                                 {ok, reference()} |
+                                                                 {error, term()}.
+stream_list_keys(Bucket, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, stream_list_keys, [Bucket, Timeout, CallTimeout]}, infinity).
+
+%% Exists in both
+%          get_bucket/1, get_bucket/2, get_bucket/3,
+%          set_bucket/2, set_bucket/3, set_bucket/4,
+%          mapred/2, mapred/3, mapred/4,
+%          mapred_stream/3, mapred_stream/4, mapred_stream/5,
+%          mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
+%          mapred_bucket_stream/4, mapred_bucket_stream/5,
+%          search/2, search/4, search/5
+
+%% @doc Get bucket properties.
+%% @equiv get_bucket(Bucket, default_timeout)
+-spec get_bucket(bucket()) -> {ok, bucket_props()} | {error, term()}.
+get_bucket(Bucket) ->
+    get_bucket(Bucket, default_timeout).
+
+%% @doc Get bucket properties specifying a server side timeout.
+%% @equiv get_bucket(Bucket, Timeout, default_call_timeout)
+-spec get_bucket(bucket(), timeout()) -> {ok, bucket_props()} | {error, term()}.
+get_bucket(Bucket, Timeout) ->
+    get_bucket(Bucket, Timeout, default_call_timeout).
+
+%% @doc Get bucket properties specifying a server side and local call timeout.
+-spec get_bucket(bucket(), timeout(), timeout()) -> {ok, bucket_props()} |
+                                                           {error, term()}.
+get_bucket(Bucket, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, get_bucket, [Bucket, Timeout, CallTimeout]}, infinity).
+
 %% ====================================================================
 %% gen_server callbacks
 %% ====================================================================
@@ -254,12 +325,16 @@ list_keys(Bucket, Timeout) ->
 %% @private
 init([Address, Port, Options]) ->
     %% TODO REFACTOR?
+    io:format("init() - self() ~p~n", [self()]),
+    % io:format("init() - Caller ~p~n", [Caller]),
     {ok, State} = erliak_transport:connect(Address, Port, Options),
     io:format("State = ~p~n", [State]),
     {ok, State}.
 
 %% Handling client API callbacks
-handle_call({client, Function, Arguments}, _From, State) ->
+handle_call({client, Function, Arguments}, From, State) ->
+
+    io:format("erliak:handle_call From = ~p~n", [From]),
     Reply = erliak_transport:handle(State, Function, Arguments),
     {reply, Reply, State};
 

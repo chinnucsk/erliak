@@ -25,15 +25,17 @@ behaviour_info(callbacks) ->
      {get_server_info,2},
      {get_client_id,2},
      {list_buckets,3},
-     {list_keys,3}
+     {list_keys,3},
+     {stream_list_keys,4},
+     {get_bucket,4}
     ];
 
 behaviour_info(_Other) ->
     undefined.
 
 
-%% @doc returns the corresponding erliang transport module for Transport
-%% TODO provide a notice to the user that we're falling back to ?DEFAULT_TRANSPORT
+%% @doc returns the corresponding erliang transport module for Transport or
+%%      ?DEFAULT_TRANSPORT if no Transport is given
 -spec get_transport_module(atom()) -> atom().
 get_transport_module(Transport) ->
     case Transport of
@@ -53,7 +55,9 @@ get_transport_module(Transport) ->
             list_to_existing_atom("erliak_" ++ atom_to_list(DefTransport))
     end.
 
-%% API functions
+%% @doc Connects to the Riak server on Address:Port with Options using
+%%      the transport protocol specified in Options
+-spec connect(address(), portnum(), client_options()) -> {ok, connection_ref()}.
 connect(Address, Port, Options) ->
     %% Extract (and remove) the transport from the options
     Transport = proplists:get_value(transport, Options),
@@ -61,6 +65,7 @@ connect(Address, Port, Options) ->
     TModule = get_transport_module(Transport),
     %% Perform connection based on the transport given
     {ok, Connection} = TModule:connect(Address, Port, Opts),
+    io:format("CONNECT self() ~p~n", [self()]),
     %% Store this connection in state
     State = #connection{
         connection = Connection,

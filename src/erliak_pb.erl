@@ -18,7 +18,9 @@
      get_server_info/2,
      get_client_id/2,
      list_buckets/3,
-     list_keys/3
+     list_keys/3,
+     stream_list_keys/4,
+     get_bucket/4
      ]).
 
 %% gen_server callbacks
@@ -79,6 +81,22 @@ list_keys(Connection, Bucket, default_timeout) ->
 list_keys(Connection, Bucket, Timeout) ->
     e_list_keys(Connection, Bucket, Timeout).
 
+%% TODO get rid of PB gen_server in favour of erliak's gen_server
+stream_list_keys(Connection, Bucket, default_timeout, default_call_timeout) ->
+    io:format("stream_list_keys | My self() ~p~n", [self()]),
+    e_stream_list_keys(Connection, Bucket);
+stream_list_keys(Connection, Bucket, Timeout, default_call_timeout) ->    
+    e_stream_list_keys(Connection, Bucket, Timeout);
+stream_list_keys(Connection, Bucket, Timeout, CallTimeout) ->    
+    e_stream_list_keys(Connection, Bucket, Timeout, CallTimeout).    
+
+get_bucket(Connection, Bucket, default_timeout, default_call_timeout) ->
+    e_get_bucket(Connection, Bucket);
+get_bucket(Connection, Bucket, Timeout, default_call_timeout) ->    
+    e_get_bucket(Connection, Bucket, Timeout);
+get_bucket(Connection, Bucket, Timeout, CallTimeout) ->
+    e_get_bucket(Connection, Bucket, Timeout, CallTimeout).
+
 %% ====================================================================
 %% Private (from riak-erlang-client)
 %% ====================================================================
@@ -105,14 +123,14 @@ list_keys(Connection, Bucket, Timeout) ->
 % -type client_id() :: binary(). %% A client identifier, used for differentiating client processes
 
 % -type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
--type req_id() :: non_neg_integer(). %% Request identifier for streaming requests.
+% -type req_id() :: non_neg_integer(). %% Request identifier for streaming requests.
 -type rpb_req() :: atom() | tuple().
 -type ctx() :: any().
 -type rpb_resp() :: atom() | tuple().
 -type server_prop() :: {node, binary()} | {server_version, binary()}. %% Server properties, as returned by the `get_server_info/1' call.
 -type server_info() :: [server_prop()]. %% A response from the `get_server_info/1' call.
--type bucket_prop() :: {n_val, pos_integer()} | {allow_mult, boolean()}. %% Bucket property definitions.
--type bucket_props() :: [bucket_prop()]. %% Bucket properties
+% -type bucket_prop() :: {n_val, pos_integer()} | {allow_mult, boolean()}. %% Bucket property definitions.
+% -type bucket_props() :: [bucket_prop()]. %% Bucket properties
 -type quorum() :: non_neg_integer() | one | all | quorum | default.  %% A quorum setting for get/put/delete requests.
 -type read_quorum() :: {r, ReadQuorum::quorum()} |
                        {pr, PrimaryReadQuorum::quorum()}. %% Valid quorum options for get requests.
@@ -522,24 +540,25 @@ e_stream_list_keys(Pid, Bucket, Timeout) ->
 e_stream_list_keys(Pid, Bucket, Timeout, CallTimeout) ->
     ReqMsg = #rpblistkeysreq{bucket = Bucket},
     ReqId = mk_reqid(),
+    io:format("e_stream_list_keys My self() ~p~n", [self()]),
     gen_server:call(Pid, {req, ReqMsg, Timeout, {ReqId, self()}}, CallTimeout).
 
 %% @doc Get bucket properties.
-%% @equiv get_bucket(Pid, Bucket, default_timeout(get_bucket_timeout))
--spec get_bucket(pid(), bucket()) -> {ok, bucket_props()} | {error, term()}.
-get_bucket(Pid, Bucket) ->
-    get_bucket(Pid, Bucket, default_timeout(get_bucket_timeout)).
+%% @equiv e_get_bucket(Pid, Bucket, default_timeout(get_bucket_timeout))
+-spec e_get_bucket(pid(), bucket()) -> {ok, bucket_props()} | {error, term()}.
+e_get_bucket(Pid, Bucket) ->
+    e_get_bucket(Pid, Bucket, default_timeout(get_bucket_timeout)).
 
 %% @doc Get bucket properties specifying a server side timeout.
-%% @equiv get_bucket(Pid, Bucket, Timeout, default_timeout(get_bucket_call_timeout))
--spec get_bucket(pid(), bucket(), timeout()) -> {ok, bucket_props()} | {error, term()}.
-get_bucket(Pid, Bucket, Timeout) ->
-    get_bucket(Pid, Bucket, Timeout, default_timeout(get_bucket_call_timeout)).
+%% @equiv e_get_bucket(Pid, Bucket, Timeout, default_timeout(get_bucket_call_timeout))
+-spec e_get_bucket(pid(), bucket(), timeout()) -> {ok, bucket_props()} | {error, term()}.
+e_get_bucket(Pid, Bucket, Timeout) ->
+    e_get_bucket(Pid, Bucket, Timeout, default_timeout(get_bucket_call_timeout)).
 
 %% @doc Get bucket properties specifying a server side and local call timeout.
--spec get_bucket(pid(), bucket(), timeout(), timeout()) -> {ok, bucket_props()} |
+-spec e_get_bucket(pid(), bucket(), timeout(), timeout()) -> {ok, bucket_props()} |
                                                            {error, term()}.
-get_bucket(Pid, Bucket, Timeout, CallTimeout) ->
+e_get_bucket(Pid, Bucket, Timeout, CallTimeout) ->
     Req = #rpbgetbucketreq{bucket = Bucket},
     gen_server:call(Pid, {req, Req, Timeout}, CallTimeout).
 
@@ -938,8 +957,11 @@ handle_info({tcp_closed, _Socket}, State) ->
 %% a response queued up behind it we do not want to process it.  Instead
 %% it should drop through and be ignored.
 handle_info({tcp, Sock, Data}, State=#state{sock = Sock, active = Active}) ->
+    io:format("handle_info self() ~p~n", [self()]),
+
     [MsgCode|MsgData] = Data,
     Resp = riak_pb_codec:decode(MsgCode, MsgData),
+    io:format(" Resp ~p~n", [Resp]),
     case Resp of
         #rpberrorresp{} ->
             NewState1 = maybe_reply(on_error(Active, Resp, State)),
@@ -1034,6 +1056,7 @@ maybe_reply({noreply, State}) ->
 %% in as the context and gen_server:reply hasn't been called yet.
 send_caller(Msg, #request{ctx = {ReqId, Client},
                           from = undefined}=Request) ->
+    io:format(" send_caller self() ~p~n", [Client]),
     Client ! {ReqId, Msg},
     Request;
 send_caller(Msg, #request{from = From}=Request) when From /= undefined ->
