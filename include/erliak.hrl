@@ -25,9 +25,13 @@
 -type bucket() :: binary(). %% A bucket name
 -type key() :: binary(). %% A key name
 -type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
--type proplist() :: [tuple()]. %% Type for options
+-type proplist() :: [proplists:property()]. %% Type for options
 
 -type client_id() :: binary() | string().
+
+-type req_id() :: non_neg_integer(). %% Request identifier for streaming requests.
+-type bucket_prop() :: {n_val, pos_integer()} | {allow_mult, boolean()}. %% Bucket property definitions.
+-type bucket_props() :: [bucket_prop()]. %% Bucket properties
 
 %% ====================================================================
 %% Records
