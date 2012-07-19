@@ -41,13 +41,7 @@ setup() ->
     {ok, C} = erliak:start_link(),
     C.
 
-cleanup(C) ->	    
-    % %% Delete test_bucket(), test_key()
-    % erliak:delete(test_bucket(), test_key()),    
-    % %% Delete test_key() from test_buckets()
-    % [ erliak:delete(B, test_key()) || B <- test_buckets() ],    
-    % %% Delete test_keys() from test_bucket()
-    % [ erliak:delete(test_bucket(), K) || K <- test_keys() ],
+cleanup(C) ->	        
 	reset_riak(),
     erliak:stop(C),
     [ ok = application:stop(A) || A <- [sasl, ibrowse] ].
@@ -153,6 +147,32 @@ test_suite() ->
 			[ F(K) || K <- Keys ],
 			{ok, KeyList} = erliak:list_keys(test_bucket()),
 			?assertEqual(Keys, lists:sort(KeyList))			
+		end)}},
+	 {Transport ++ " - stream list keys in empty bucket",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin			
+			%% TODO get rid of PB gen_server in favour of erliak's gen_server
+			{ok, Ref} = erliak:stream_list_keys(<<"even_emptier_bucket">>)
+			% receive
+			% 	{GRef, done} ->
+			% 		?assertEqual(GRef, Ref)
+			% end			
+		end)}},
+	 {Transport ++ " - put keys then stream list keys",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin			
+			%% TODO get rid of PB gen_server in favour of erliak's gen_server
+			% Keys = test_keys(),
+			% F = fun(K) ->
+			% 	Obj = riakc_obj:new(test_bucket(), K, test_value()),
+			% 	erliak:put(Obj)
+			% end,
+			% [ F(K) || K <- Keys ],
+			{ok, Ref} = erliak:stream_list_keys(test_bucket())
 		end)}},
      {Transport ++ " - simple put then read value of get",
       { setup,
