@@ -20,7 +20,13 @@
      list_buckets/3,
      list_keys/3,
      stream_list_keys/4,
-     get_bucket/4
+     get_bucket/4,
+     set_bucket/5,
+     mapred/5,
+     mapred_stream/6,
+     mapred_bucket/5,
+     mapred_bucket_stream/6,
+     search/3, search/6
      ]).
 
 %% gen_server callbacks
@@ -31,43 +37,52 @@
 %% Public API
 %% ====================================================================
 
+
 connect(default_address, default_port, Options) ->
     connect(?DEFAULT_ADDRESS, ?DEFAULT_PORT, Options);
 connect(Address, Port, Options) ->
     start_link(Address, Port, Options).
+
 
 ping(Connection, default_timeout) ->
     e_ping(Connection);
 ping(Connection, Timeout) ->
     e_ping(Connection, Timeout).
 
+
 get(Connection, Bucket, Key, Options, default_timeout) ->
     e_get(Connection, Bucket, Key, Options);
 get(Connection, Bucket, Key, Options, Timeout) ->
     e_get(Connection, Bucket, Key, Options, Timeout).
+
 
 put(Connection, Object, Options, default_timeout) ->
     e_put(Connection, Object, Options);
 put(Connection, Object, Options, Timeout) ->
     e_put(Connection, Object, Options, Timeout).
 
+
 delete(Connection, Bucket, Key, Options, default_timeout) ->
     e_delete(Connection, Bucket, Key, Options);
 delete(Connection, Bucket, Key, Options, Timeout) ->
     e_delete(Connection, Bucket, Key, Options, Timeout).
 
+
 disconnect(Connection) ->
     stop(Connection).
+
 
 get_server_info(Connection, default_timeout) ->
     e_get_server_info(Connection);
 get_server_info(Connection, Timeout) ->
     e_get_server_info(Connection, Timeout).
 
+
 get_client_id(Connection, default_timeout) ->
     e_get_client_id(Connection);
 get_client_id(Connection, Timeout) ->    
     e_get_client_id(Connection, Timeout).
+
 
 list_buckets(Connection, default_timeout, default_call_timeout) ->
     e_list_buckets(Connection);
@@ -76,10 +91,12 @@ list_buckets(Connection, Timeout, default_call_timeout) ->
 list_buckets(Connection, Timeout, CallTimeout) ->    
     e_list_buckets(Connection, Timeout, CallTimeout).
 
+
 list_keys(Connection, Bucket, default_timeout) ->
     e_list_keys(Connection, Bucket);
 list_keys(Connection, Bucket, Timeout) ->
     e_list_keys(Connection, Bucket, Timeout).
+
 
 %% TODO get rid of PB gen_server in favour of erliak's gen_server
 stream_list_keys(Connection, Bucket, default_timeout, default_call_timeout) ->
@@ -90,12 +107,66 @@ stream_list_keys(Connection, Bucket, Timeout, default_call_timeout) ->
 stream_list_keys(Connection, Bucket, Timeout, CallTimeout) ->    
     e_stream_list_keys(Connection, Bucket, Timeout, CallTimeout).    
 
+
 get_bucket(Connection, Bucket, default_timeout, default_call_timeout) ->
     e_get_bucket(Connection, Bucket);
 get_bucket(Connection, Bucket, Timeout, default_call_timeout) ->    
     e_get_bucket(Connection, Bucket, Timeout);
 get_bucket(Connection, Bucket, Timeout, CallTimeout) ->
     e_get_bucket(Connection, Bucket, Timeout, CallTimeout).
+
+
+set_bucket(Connection, Bucket, BucketProps, default_timeout, default_call_timeout) ->
+    e_set_bucket(Connection, Bucket, BucketProps);
+set_bucket(Connection, Bucket, BucketProps, Timeout, default_call_timeout) ->
+    e_set_bucket(Connection, Bucket, BucketProps, Timeout);
+set_bucket(Connection, Bucket, BucketProps, Timeout, CallTimeout) ->
+    e_set_bucket(Connection, Bucket, BucketProps, Timeout, CallTimeout).
+
+
+mapred(Connection, Inputs, Query, default_timeout, default_call_timeout) ->
+    e_mapred(Connection, Inputs, Query);
+mapred(Connection, Inputs, Query, Timeout, default_call_timeout) ->
+    e_mapred(Connection, Inputs, Query, Timeout);
+mapred(Connection, Inputs, Query, Timeout, CallTimeout) ->
+    e_mapred(Connection, Inputs, Query, Timeout, CallTimeout).
+
+
+%% TODO get rid of PB gen_server in favour of erliak's gen_server
+mapred_stream(Connection, Inputs, Query, ClientPid, default_timeout, default_call_timeout) ->
+    e_mapred_stream(Connection, Inputs, Query, ClientPid);
+mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, default_call_timeout) ->
+    e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout);
+mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
+    e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, CallTimeout).
+
+
+mapred_bucket(Connection, Bucket, Query, default_timeout, default_call_timeout) ->
+    e_mapred_bucket(Connection, Bucket, Query);
+mapred_bucket(Connection, Bucket, Query, Timeout, default_call_timeout) ->
+    e_mapred_bucket(Connection, Bucket, Query, Timeout);
+mapred_bucket(Connection, Bucket, Query, Timeout, CallTimeout) ->    
+    e_mapred_bucket(Connection, Bucket, Query, Timeout, CallTimeout).
+
+%% TODO consistent timeout behaviour?
+% mapred_bucket_stream(Connection, Bucket, Query, ClientPid, default_timeout, default_call_timeout) ->
+%     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid);
+mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, default_call_timeout) ->
+    e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout);
+mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, CallTimeout) ->    
+    e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, CallTimeout).
+
+search(Connection, Bucket, SearchQuery) ->
+    e_search(Connection, Bucket, SearchQuery).
+
+%% TODO consistent timeout behaviour?
+% search(Connection, Bucket, SearchQuery, MRQuery, default_timeout, default_call_timeout) ->
+%     e_search(Connection, Bucket, SearchQuery, MRQuery);
+search(Connection, Bucket, SearchQuery, MRQuery, Timeout, default_call_timeout) ->
+    e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout);
+search(Connection, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->    
+    e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout).
+
 
 %% ====================================================================
 %% Private (from riak-erlang-client)
@@ -161,31 +232,7 @@ get_bucket(Connection, Bucket, Timeout, CallTimeout) ->
 -type get_options() :: [get_option()]. %% A list of options for a get request.
 -type put_options() :: [put_option()]. %% A list of options for a put request.
 -type delete_options() :: [delete_quorum()]. %% A list of options for a delete request.
--type mapred_queryterm() ::  {map, mapred_funterm(), Arg::term(), Accumulate :: boolean()} |
-                             {reduce, mapred_funterm(), Arg::term(),Accumulate :: boolean()} |
-                             {link, Bucket :: riakc_obj:bucket(), Tag :: term(), Accumulate :: boolean()}.
-%% A MapReduce phase specification. `map' functions operate on single
-%% K/V objects. `reduce' functions operate across collections of
-%% inputs from other phases. `link' is a special type of map phase
-%% that matches links in the fetched objects. The `Arg' parameter will
-%% be passed as the last argument to the phase function. The
-%% `Accumulate' param determines whether results from this phase will
-%% be returned to the client.
--type mapred_funterm() :: {modfun, Module :: atom(), Function :: atom()} |
-                          {qfun, function()} |
-                          {strfun, list() | binary()}.
-%% A MapReduce phase function specification. `modfun' requires that
-%% the compiled module be available on all Riak nodes. `qfun' will
-%% only work from the shell (compiled fun() terms refer to compiled
-%% code only). `strfun' contains the textual source of an Erlang
-%% function but the functionality must be enabled on the Riak cluster.
--type mapred_result() :: [term()].
-%% The results of a MapReduce job.
--type mapred_inputs() :: [{bucket(), key()} | {bucket(), key(), term()}] |
-                         {modfun, Module::atom(), Function::atom(), [term()]} |
-                         bucket() |
-                         {index, bucket(), Index::binary(), key()} |
-                         {index, bucket(), Index::binary(), StartKey::key(), EndKey::key()}.
+
 %% Inputs for a MapReduce job.
 -type connection_failure() :: {Reason::term(), FailureCount::integer()}.
 %% The reason for connection failure and how many times that type of
@@ -563,59 +610,59 @@ e_get_bucket(Pid, Bucket, Timeout, CallTimeout) ->
     gen_server:call(Pid, {req, Req, Timeout}, CallTimeout).
 
 %% @doc Set bucket properties.
-%% @equiv set_bucket(Pid, Bucket, BucketProps, default_timeout(set_bucket_timeout))
--spec set_bucket(pid(), bucket(), bucket_props()) -> ok | {error, term()}.
-set_bucket(Pid, Bucket, BucketProps) ->
-    set_bucket(Pid, Bucket, BucketProps, default_timeout(set_bucket_timeout)).
+%% @equiv e_set_bucket(Pid, Bucket, BucketProps, default_timeout(set_bucket_timeout))
+-spec e_set_bucket(pid(), bucket(), bucket_props()) -> ok | {error, term()}.
+e_set_bucket(Pid, Bucket, BucketProps) ->
+    e_set_bucket(Pid, Bucket, BucketProps, default_timeout(set_bucket_timeout)).
 
 %% @doc Set bucket properties specifying a server side timeout.
 %% @equiv set_bucket(Pid, Bucket, BucketProps, Timeout, default_timeout(set_bucket_call_timeout))
--spec set_bucket(pid(), bucket(), bucket_props(), timeout()) -> ok | {error, term()}.
-set_bucket(Pid, Bucket, BucketProps, Timeout) ->
-    set_bucket(Pid, Bucket, BucketProps, Timeout,
+-spec e_set_bucket(pid(), bucket(), bucket_props(), timeout()) -> ok | {error, term()}.
+e_set_bucket(Pid, Bucket, BucketProps, Timeout) ->
+    e_set_bucket(Pid, Bucket, BucketProps, Timeout,
                default_timeout(set_bucket_call_timeout)).
 
 %% @doc Set bucket properties specifying a server side and local call timeout.
--spec set_bucket(pid(), bucket(), bucket_props(), timeout(), timeout()) -> ok | {error, term()}.
-set_bucket(Pid, Bucket, BucketProps, Timeout, CallTimeout) ->
+-spec e_set_bucket(pid(), bucket(), bucket_props(), timeout(), timeout()) -> ok | {error, term()}.
+e_set_bucket(Pid, Bucket, BucketProps, Timeout, CallTimeout) ->
     PbProps = riak_pb_kv_codec:encode_bucket_props(BucketProps),
     Req = #rpbsetbucketreq{bucket = Bucket, props = PbProps},
     gen_server:call(Pid, {req, Req, Timeout}, CallTimeout).
 
 %% @doc Perform a MapReduce job across the cluster.
 %%      See the MapReduce documentation for explanation of behavior.
-%% @equiv mapred(Inputs, Query, default_timeout(mapred))
--spec mapred(pid(), mapred_inputs(), [mapred_queryterm()]) ->
+%% @equiv e_mapred(Inputs, Query, default_timeout(mapred))
+-spec e_mapred(pid(), mapred_inputs(), [mapred_queryterm()]) ->
                     {ok, mapred_result()} |
                     {error, {badqterm, mapred_queryterm()}} |
                     {error, timeout} |
                     {error, term()}.
-mapred(Pid, Inputs, Query) ->
-    mapred(Pid, Inputs, Query, default_timeout(mapred_timeout)).
+e_mapred(Pid, Inputs, Query) ->
+    e_mapred(Pid, Inputs, Query, default_timeout(mapred_timeout)).
 
 %% @doc Perform a MapReduce job across the cluster with a job timeout.
 %%      See the MapReduce documentation for explanation of behavior.
-%% @equiv mapred(Pid, Inputs, Query, Timeout, default_timeout(mapred_call_timeout))
--spec mapred(pid(), mapred_inputs(), [mapred_queryterm()], timeout()) ->
+%% @equiv e_mapred(Pid, Inputs, Query, Timeout, default_timeout(mapred_call_timeout))
+-spec e_mapred(pid(), mapred_inputs(), [mapred_queryterm()], timeout()) ->
                     {ok, mapred_result()} |
                     {error, {badqterm, mapred_queryterm()}} |
                     {error, timeout} |
                     {error, term()}.
-mapred(Pid, Inputs, Query, Timeout) ->
-    mapred(Pid, Inputs, Query, Timeout, default_timeout(mapred_call_timeout)).
+e_mapred(Pid, Inputs, Query, Timeout) ->
+    e_mapred(Pid, Inputs, Query, Timeout, default_timeout(mapred_call_timeout)).
 
 %% @doc Perform a MapReduce job across the cluster with a job and
 %%      local call timeout.  See the MapReduce documentation for
 %%      explanation of behavior. This is implemented by using
-%%      <code>mapred_stream/6</code> and then waiting for all results.
-%% @see mapred_stream/6
--spec mapred(pid(), mapred_inputs(), [mapred_queryterm()], timeout(), timeout()) ->
+%%      <code>e_mapred_stream/6</code> and then waiting for all results.
+%% @see e_mapred_stream/6
+-spec e_mapred(pid(), mapred_inputs(), [mapred_queryterm()], timeout(), timeout()) ->
                     {ok, mapred_result()} |
                     {error, {badqterm, mapred_queryterm()}} |
                     {error, timeout} |
                     {error, term()}.
-mapred(Pid, Inputs, Query, Timeout, CallTimeout) ->
-    case mapred_stream(Pid, Inputs, Query, self(), Timeout, CallTimeout) of
+e_mapred(Pid, Inputs, Query, Timeout, CallTimeout) ->
+    case e_mapred_stream(Pid, Inputs, Query, self(), Timeout, CallTimeout) of
         {ok, ReqId} ->
             wait_for_mapred(ReqId, Timeout);
         Error ->
@@ -628,14 +675,14 @@ mapred(Pid, Inputs, Query, Timeout, CallTimeout) ->
 %%      The ClientPid will receive messages in this format:
 %% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
 %%      {ReqId::req_id(), done}'''
-%% @equiv mapred_stream(ConnectionPid, Inputs, Query, ClientPid, default_timeout(mapred_stream_timeout))
--spec mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid()) ->
+%% @equiv e_mapred_stream(ConnectionPid, Inputs, Query, ClientPid, default_timeout(mapred_stream_timeout))
+-spec e_mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid()) ->
                            {ok, req_id()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_stream(Pid, Inputs, Query, ClientPid) ->
-    mapred_stream(Pid, Inputs, Query, ClientPid, default_timeout(mapred_stream_timeout)).
+e_mapred_stream(Pid, Inputs, Query, ClientPid) ->
+    e_mapred_stream(Pid, Inputs, Query, ClientPid, default_timeout(mapred_stream_timeout)).
 
 %% @doc Perform a streaming MapReduce job with a timeout across the cluster.
 %%      sending results to ClientPid.
@@ -643,14 +690,14 @@ mapred_stream(Pid, Inputs, Query, ClientPid) ->
 %%      The ClientPid will receive messages in this format:
 %% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
 %%      {ReqId::req_id(), done}'''
-%% @equiv mapred_stream(ConnectionPid, Inputs, Query, ClientPid, Timeout, default_timeout(mapred_stream_call_timeout))
--spec mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid(), Timeout::timeout()) ->
+%% @equiv e_mapred_stream(ConnectionPid, Inputs, Query, ClientPid, Timeout, default_timeout(mapred_stream_call_timeout))
+-spec e_mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid(), Timeout::timeout()) ->
                            {ok, req_id()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_stream(Pid, Inputs, Query, ClientPid, Timeout) ->
-    mapred_stream(Pid, Inputs, Query, ClientPid, Timeout,
+e_mapred_stream(Pid, Inputs, Query, ClientPid, Timeout) ->
+    e_mapred_stream(Pid, Inputs, Query, ClientPid, Timeout,
                   default_timeout(mapred_stream_call_timeout)).
 
 %% @doc Perform a streaming MapReduce job with a map/red timeout across the cluster,
@@ -659,14 +706,14 @@ mapred_stream(Pid, Inputs, Query, ClientPid, Timeout) ->
 %%      The ClientPid will receive messages in this format:
 %% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
 %%      {ReqId::req_id(), done}'''
--spec mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),
+-spec e_mapred_stream(ConnectionPid::pid(),Inputs::mapred_inputs(),
                     Query::[mapred_queryterm()], ClientPid::pid(),
                     Timeout::timeout(), CallTimeout::timeout()) ->
                            {ok, req_id()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_stream(Pid, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
+e_mapred_stream(Pid, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
     MapRed = [{'inputs', Inputs},
               {'query', Query},
               {'timeout', Timeout}],
@@ -675,40 +722,40 @@ mapred_stream(Pid, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
 %% @doc Perform a MapReduce job against a bucket across the cluster.
 %%      See the MapReduce documentation for explanation of behavior.
 %% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
-%% @equiv mapred_bucket(Pid, Bucket, Query, default_timeout(mapred_bucket_timeout))
--spec mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()]) ->
+%% @equiv e_mapred_bucket(Pid, Bucket, Query, default_timeout(mapred_bucket_timeout))
+-spec e_mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()]) ->
                            {ok, mapred_result()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_bucket(Pid, Bucket, Query) ->
-    mapred_bucket(Pid, Bucket, Query, default_timeout(mapred_bucket_timeout)).
+e_mapred_bucket(Pid, Bucket, Query) ->
+    e_mapred_bucket(Pid, Bucket, Query, default_timeout(mapred_bucket_timeout)).
 
 %% @doc Perform a MapReduce job against a bucket with a timeout
 %%      across the cluster.
 %%      See the MapReduce documentation for explanation of behavior.
-%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
-%% @equiv mapred_bucket(Pid, Bucket, Query, Timeout, default_timeout(mapred_bucket_call_timeout))
--spec mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()], Timeout::timeout()) ->
+%% <em>This uses e_list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+%% @equiv e_mapred_bucket(Pid, Bucket, Query, Timeout, default_timeout(mapred_bucket_call_timeout))
+-spec e_mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()], Timeout::timeout()) ->
                            {ok, mapred_result()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_bucket(Pid, Bucket, Query, Timeout) ->
-    mapred_bucket(Pid, Bucket, Query, Timeout, default_timeout(mapred_bucket_call_timeout)).
+e_mapred_bucket(Pid, Bucket, Query, Timeout) ->
+    e_mapred_bucket(Pid, Bucket, Query, Timeout, default_timeout(mapred_bucket_call_timeout)).
 
 %% @doc Perform a MapReduce job against a bucket with a timeout
 %%      across the cluster and local call timeout.
 %%      See the MapReduce documentation for explanation of behavior.
-%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
--spec mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()],
+%% <em>This uses e_list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+-spec e_mapred_bucket(Pid::pid(), Bucket::bucket(), Query::[mapred_queryterm()],
                     Timeout::timeout(), CallTimeout::timeout()) ->
                            {ok, mapred_result()} |
                            {error, {badqterm, mapred_queryterm()}} |
                            {error, timeout} |
                            {error, Err :: term()}.
-mapred_bucket(Pid, Bucket, Query, Timeout, CallTimeout) ->
-    case mapred_bucket_stream(Pid, Bucket, Query, self(), Timeout, CallTimeout) of
+e_mapred_bucket(Pid, Bucket, Query, Timeout, CallTimeout) ->
+    case e_mapred_bucket_stream(Pid, Bucket, Query, self(), Timeout, CallTimeout) of
         {ok, ReqId} ->
             wait_for_mapred(ReqId, Timeout);
         Error ->
@@ -722,12 +769,12 @@ mapred_bucket(Pid, Bucket, Query, Timeout, CallTimeout) ->
 %%      The ClientPid will receive messages in this format:
 %% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
 %%      {ReqId::req_id(), done}'''
-%% @equiv     mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout, default_timeout(mapred_bucket_stream_call_timeout))
--spec mapred_bucket_stream(ConnectionPid::pid(), bucket(), [mapred_queryterm()], ClientPid::pid(), timeout()) ->
+%% @equiv     e_mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout, default_timeout(mapred_bucket_stream_call_timeout))
+-spec e_mapred_bucket_stream(ConnectionPid::pid(), bucket(), [mapred_queryterm()], ClientPid::pid(), timeout()) ->
                                   {ok, req_id()} |
                                   {error, term()}.
-mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout) ->
-    mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout,
+e_mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout) ->
+    e_mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout,
                          default_timeout(mapred_bucket_stream_call_timeout)).
 
 %% @doc Perform a streaming MapReduce job against a bucket with a server timeout
@@ -737,9 +784,9 @@ mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout) ->
 %%      The ClientPid will receive messages in this format:
 %% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
 %%      {ReqId::req_id(), done}'''
--spec mapred_bucket_stream(ConnectionPid::pid(), bucket(), [mapred_queryterm()], ClientPid::pid(), timeout(), timeout()) ->
+-spec e_mapred_bucket_stream(ConnectionPid::pid(), bucket(), [mapred_queryterm()], ClientPid::pid(), timeout(), timeout()) ->
                                   {ok, req_id()} | {error, term()}.
-mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout, CallTimeout) ->
+e_mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout, CallTimeout) ->
     MapRed = [{'inputs', Bucket},
               {'query', Query},
               {'timeout', Timeout}],
@@ -750,15 +797,15 @@ mapred_bucket_stream(Pid, Bucket, Query, ClientPid, Timeout, CallTimeout) ->
 %%      unless executed against a Riak Search cluster.  Because
 %%      Protocol Buffers has no native Search interface, this uses the
 %%      search inputs to MapReduce.
--spec search(pid(), bucket(), string()) ->  {ok, mapred_result()} | {error, term()}.
-search(Pid, Bucket, SearchQuery) ->
+-spec e_search(pid(), bucket(), string()) ->  {ok, mapred_result()} | {error, term()}.
+e_search(Pid, Bucket, SearchQuery) ->
     %% Run a MapReduce operation using reduce_identity to get a list
     %% of BKeys.
     IdentityQuery = [{reduce,
                       {modfun, riak_kv_mapreduce, reduce_identity},
                       [{reduce_phase_only_1, true}],
                       true}],
-    case search(Pid, Bucket, SearchQuery, IdentityQuery,
+    case e_search(Pid, Bucket, SearchQuery, IdentityQuery,
                 default_timeout(search_timeout)) of
         {ok, [{_, Results}]} ->
             %% Unwrap the results.
@@ -769,22 +816,22 @@ search(Pid, Bucket, SearchQuery) ->
 %% @doc Execute a search query and feed the results into a MapReduce
 %%      query.  This command will return an error
 %%      unless executed against a Riak Search cluster.
-%% @equiv search(Pid, Bucket, SearchQuery, MRQuery, Timeout, default_timeout(search_call_timeout))
--spec search(pid(), bucket(), string(), [mapred_queryterm()], timeout()) ->
+%% @equiv e_search(Pid, Bucket, SearchQuery, MRQuery, Timeout, default_timeout(search_call_timeout))
+-spec e_search(pid(), bucket(), string(), [mapred_queryterm()], timeout()) ->
                     {ok, mapred_result()} | {error, term()}.
-search(Pid, Bucket, SearchQuery, MRQuery, Timeout) ->
-    search(Pid, Bucket, SearchQuery, MRQuery, Timeout,
+e_search(Pid, Bucket, SearchQuery, MRQuery, Timeout) ->
+    e_search(Pid, Bucket, SearchQuery, MRQuery, Timeout,
            default_timeout(search_call_timeout)).
 
 
 %% @doc Execute a search query and feed the results into a MapReduce
 %%      query with a timeout on the call. This command will return
 %%      an error unless executed against a Riak Search cluster.
--spec search(pid(), bucket(), string(), [mapred_queryterm()], timeout(), timeout()) ->
+-spec e_search(pid(), bucket(), string(), [mapred_queryterm()], timeout(), timeout()) ->
                     {ok, mapred_result()} | {error, term()}.
-search(Pid, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->
+e_search(Pid, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->
     Inputs = {modfun, riak_search, mapred_search, [Bucket, SearchQuery]},
-    mapred(Pid, Inputs, MRQuery, Timeout, CallTimeout).
+    e_mapred(Pid, Inputs, MRQuery, Timeout, CallTimeout).
 
 %% @doc Execute a secondary index equality query. This functionality
 %% is implemented via executing a MapReduce job with an index as the
@@ -799,7 +846,7 @@ get_index(Pid, Bucket, Index, Key) ->
                       {modfun, riak_kv_mapreduce, reduce_identity},
                       [{reduce_phase_only_1, true}],
                       true}],
-    case mapred(Pid, Input, IdentityQuery) of
+    case e_mapred(Pid, Input, IdentityQuery) of
         {ok, [{_, Results}]} ->
             %% Unwrap the results.
             {ok, Results};
@@ -840,7 +887,7 @@ get_index(Pid, Bucket, Index, StartKey, EndKey) ->
                       {modfun, riak_kv_mapreduce, reduce_identity},
                       [{reduce_phase_only_1, true}],
                       true}],
-    case mapred(Pid, Input, IdentityQuery) of
+    case e_mapred(Pid, Input, IdentityQuery) of
         {ok, [{_, Results}]} ->
             %% Unwrap the results.
             {ok, Results};

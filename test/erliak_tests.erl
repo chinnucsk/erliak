@@ -174,6 +174,38 @@ test_suite() ->
 			% [ F(K) || K <- Keys ],
 			{ok, Ref} = erliak:stream_list_keys(test_bucket())
 		end)}},
+	 {Transport ++ " - get bucket properties",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin			
+			%% TODO http will fail this test as it'll return more properties
+			%% TODO alternative test for now, as HTTP returns more properties
+			%% TODO also test with timeout
+			{ok, Props} = erliak:get_bucket(test_bucket()),
+			?assertEqual({ok,Props}, erliak:get_bucket(test_bucket(), 500)),
+			?assertEqual({ok,Props}, erliak:get_bucket(test_bucket(), 500, 700)),
+            ?assertEqual(false, proplists:get_value(allow_mult, Props)),
+            ?assertEqual(3, proplists:get_value(n_val, Props))
+            % ?assertEqual([{allow_mult,false},
+            %               {n_val,3}],
+            %               lists:sort(Props))
+		end)}},	 
+	 {Transport ++ " - set bucket properties then get bucket properties",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin			
+			%% TODO alternative test for now, as HTTP returns more properties
+			ok = erliak:set_bucket(test_bucket(), [{n_val, 2}, {allow_mult, true}]),
+            {ok, Props} = erliak:get_bucket(test_bucket()),
+            ?assertEqual(true, proplists:get_value(allow_mult, Props)),
+			?assertEqual(2, proplists:get_value(n_val, Props))
+                          
+            % ?assertEqual([{allow_mult,true},
+            %               {n_val,2}],
+            %               lists:sort(Props))
+		end)}},
      {Transport ++ " - simple put then read value of get",
       { setup,
 	fun setup/0,
@@ -248,7 +280,19 @@ test_suite() ->
 		    ok = erliak:put(Obj, 500),
 		    erliak:delete(test_bucket(), test_key()),
 		    ?assertEqual({error, notfound}, erliak:get(test_bucket(), test_key()))
-		end)}}     
+		end)}},     
+	 {Transport ++ " - javascript source map test",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			O = riakc_obj:new(test_bucket(), test_key()),
+			erliak:put(riakc_obj:update_value(O, <<"2">>, "application/json")),
+			?assertEqual({ok, [{0, [2]}]},
+            	erliak:mapred([{test_bucket(), test_key()}],
+                              [{map, {jsanon, <<"function (v) { return [JSON.parse(v.values[0].data)]; }">>},
+								undefined, true}]))
+		end)}}
     ].
 
 switch_protocol_to_pb_test_() ->

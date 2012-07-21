@@ -12,7 +12,14 @@
          list_buckets/3,
          list_keys/3,
          stream_list_keys/4,
-         get_bucket/4]).
+         get_bucket/4,
+         set_bucket/5,
+         mapred/5,
+         mapred_stream/6,
+         mapred_bucket/5,
+         mapred_bucket_stream/6,
+         search/3, search/6
+         ]).
 
 -include("erliak_http.hrl").
 
@@ -81,6 +88,40 @@ stream_list_keys(Connection, Bucket, _Timeout, _CallTimeout) ->
 
 get_bucket(Connection, Bucket, _Timeout, _CallTimeout) ->    
     e_get_bucket(Connection, Bucket).
+
+set_bucket(Connection, Bucket, BucketProps, _Timeout, _CallTimeout) ->
+    e_set_bucket(Connection, Bucket, BucketProps).
+
+mapred(Connection, Inputs, Query, default_timeout, _CallTimeout) ->
+    e_mapred(Connection, Inputs, Query);
+mapred(Connection, Inputs, Query, Timeout, _CallTimeout) ->
+    e_mapred(Connection, Inputs, Query, Timeout).
+
+mapred_stream(Connection, Inputs, Query, ClientPid, default_timeout, _CallTimeout) ->
+    e_mapred_stream(Connection, Inputs, Query, ClientPid);
+mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, _CallTimeout) ->    
+    e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout).
+
+mapred_bucket(Connection, Bucket, Query, default_timeout, _CallTimeout) ->
+    e_mapred_bucket(Connection, Bucket, Query);
+mapred_bucket(Connection, Bucket, Query, Timeout, _CallTimeout) ->    
+    e_mapred_bucket(Connection, Bucket, Query, Timeout).
+
+%% TODO consistent timeout behaviour?
+% mapred_bucket_stream(Connection, Bucket, Query, ClientPid, default_timeout, _CallTimeout) ->
+%     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid);
+mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, _CallTimeout) ->    
+    e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout).
+
+search(Connection, Bucket, SearchQuery) ->
+    e_search(Connection, Bucket, SearchQuery).
+
+%% TODO consistent timeout behaviour?
+% search(Connection, Bucket, SearchQuery, MRQuery, default_timeout, _CallTimeout) ->    
+%     e_search(Connection, Bucket, SearchQuery, MRQuery);
+search(Connection, Bucket, SearchQuery, MRQuery, Timeout, _CallTimeout) ->            
+    e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout).
+
 
 %% ====================================================================
 %% Erliak utility
@@ -303,8 +344,8 @@ e_get_bucket(Rhc, Bucket) ->
 %%          <dd>Whether or not this bucket should allow siblings to
 %%          be created for its keys</dd>
 %%      </dl>
-%% @spec set_bucket(rhc(), bucket(), proplist()) -> ok|{error, term()}
-set_bucket(Rhc, Bucket, Props0) ->
+%% @spec e_set_bucket(rhc(), bucket(), proplist()) -> ok|{error, term()}
+e_set_bucket(Rhc, Bucket, Props0) ->
     Url = make_url(Rhc, Bucket, undefined, []),
     Headers =  [{"Content-Type", "application/json"}],
     Props = rhc_bucket:httpify_props(Props0),
@@ -314,23 +355,23 @@ set_bucket(Rhc, Bucket, Props0) ->
         {error, Error}               -> {error, Error}
     end.
 
-%% @equiv mapred(Rhc, Inputs, Query, DEFAULT_TIMEOUT)
-mapred(Rhc, Inputs, Query) ->
-    mapred(Rhc, Inputs, Query, ?DEFAULT_TIMEOUT).
+%% @equiv e_mapred(Rhc, Inputs, Query, ?DEFAULT_TIMEOUT)
+e_mapred(Rhc, Inputs, Query) ->
+    e_mapred(Rhc, Inputs, Query, ?DEFAULT_TIMEOUT).
 
 %% @doc Execute a map/reduce query. See {@link
 %%      rhc_mapred:encode_mapred/2} for details of the allowed formats
 %%      for `Inputs' and `Query'.
-%% @spec mapred(rhc(), rhc_mapred:map_input(),
+%% @spec e_mapred(rhc(), rhc_mapred:map_input(),
 %%              [rhc_mapred:query_part()], integer())
 %%         -> {ok, [rhc_mapred:phase_result()]}|{error, term()}
-mapred(Rhc, Inputs, Query, Timeout) ->
-    {ok, ReqId} = mapred_stream(Rhc, Inputs, Query, self(), Timeout),
+e_mapred(Rhc, Inputs, Query, Timeout) ->
+    {ok, ReqId} = e_mapred_stream(Rhc, Inputs, Query, self(), Timeout),
     rhc_mapred:wait_for_mapred(ReqId, Timeout).
 
-%% @equiv mapred_stream(Rhc, Inputs, Query, ClientPid, DEFAULT_TIMEOUT)
-mapred_stream(Rhc, Inputs, Query, ClientPid) ->
-    mapred_stream(Rhc, Inputs, Query, ClientPid, ?DEFAULT_TIMEOUT).
+%% @equiv e_mapred_stream(Rhc, Inputs, Query, ClientPid, DEFAULT_TIMEOUT)
+e_mapred_stream(Rhc, Inputs, Query, ClientPid) ->
+    e_mapred_stream(Rhc, Inputs, Query, ClientPid, ?DEFAULT_TIMEOUT).
 
 %% @doc Stream map/reduce results to a Pid.  Messages sent to the Pid
 %%      will be of the form `{reference(), message()}',
@@ -345,10 +386,10 @@ mapred_stream(Rhc, Inputs, Query, ClientPid) ->
 %%         <dt>`{error, term()}'</dt>
 %%             <dd>an error occurred</dd>
 %%      </dl>
-%% @spec mapred_stream(rhc(), rhc_mapred:mapred_input(),
+%% @spec e_mapred_stream(rhc(), rhc_mapred:mapred_input(),
 %%                     [rhc_mapred:query_phase()], pid(), integer())
 %%          -> {ok, reference()}|{error, term()}
-mapred_stream(Rhc, Inputs, Query, ClientPid, Timeout) ->
+e_mapred_stream(Rhc, Inputs, Query, ClientPid, Timeout) ->
     Url = mapred_url(Rhc),
     StartRef = make_ref(),
     Pid = spawn(rhc_mapred, mapred_acceptor, [ClientPid, StartRef, Timeout]),
@@ -363,13 +404,13 @@ mapred_stream(Rhc, Inputs, Query, ClientPid, Timeout) ->
 
 %% @doc Execute a search query. This command will return an error
 %%      unless executed against a Riak Search cluster.
-%% @spec search(rhc(), bucket(), string()) ->
+%% @spec e_search(rhc(), bucket(), string()) ->
 %%       {ok, [rhc_mapred:phase_result()]}|{error, term()}
-search(Rhc, Bucket, SearchQuery) ->
+e_search(Rhc, Bucket, SearchQuery) ->
     %% Run a Map/Reduce operation using reduce_identity to get a list
     %% of BKeys.
     IdentityQuery = [{reduce, {modfun, riak_kv_mapreduce, reduce_identity}, none, true}],
-    case search(Rhc, Bucket, SearchQuery, IdentityQuery, ?DEFAULT_TIMEOUT) of
+    case e_search(Rhc, Bucket, SearchQuery, IdentityQuery, ?DEFAULT_TIMEOUT) of
         {ok, [{_, Results}]} ->
             %% Unwrap the results.
             {ok, Results};
@@ -380,32 +421,32 @@ search(Rhc, Bucket, SearchQuery) ->
 %%      query. See {@link rhc_mapred:encode_mapred/2} for details of
 %%      the allowed formats for `MRQuery'. This command will return an error
 %%      unless executed against a Riak Search cluster.
-%% @spec search(rhc(), bucket(), string(),
+%% @spec e_search(rhc(), bucket(), string(),
 %%       [rhc_mapred:query_part()], integer()) ->
 %%       {ok, [rhc_mapred:phase_result()]}|{error, term()}
-search(Rhc, Bucket, SearchQuery, MRQuery, Timeout) ->
+e_search(Rhc, Bucket, SearchQuery, MRQuery, Timeout) ->
     Inputs = {modfun, riak_search, mapred_search, [Bucket, SearchQuery]},
-    mapred(Rhc, Inputs, MRQuery, Timeout).
+    e_mapred(Rhc, Inputs, MRQuery, Timeout).
 
-%% @equiv mapred_bucket(Rhc, Bucket, Query, DEFAULT_TIMEOUT)
-mapred_bucket(Rhc, Bucket, Query) ->
-    mapred_bucket(Rhc, Bucket, Query, ?DEFAULT_TIMEOUT).
+%% @equiv e_mapred_bucket(Rhc, Bucket, Query, DEFAULT_TIMEOUT)
+e_mapred_bucket(Rhc, Bucket, Query) ->
+    e_mapred_bucket(Rhc, Bucket, Query, ?DEFAULT_TIMEOUT).
 
 %% @doc Execute a map/reduce query over all keys in the given bucket.
-%% @spec mapred_bucket(rhc(), bucket(), [rhc_mapred:query_phase()],
+%% @spec e_mapred_bucket(rhc(), bucket(), [rhc_mapred:query_phase()],
 %%                     integer())
 %%          -> {ok, [rhc_mapred:phase_result()]}|{error, term()}
-mapred_bucket(Rhc, Bucket, Query, Timeout) ->
-    {ok, ReqId} = mapred_bucket_stream(Rhc, Bucket, Query, self(), Timeout),
+e_mapred_bucket(Rhc, Bucket, Query, Timeout) ->
+    {ok, ReqId} = e_mapred_bucket_stream(Rhc, Bucket, Query, self(), Timeout),
     rhc_mapred:wait_for_mapred(ReqId, Timeout).
 
 %% @doc Stream map/reduce results over all keys in a bucket to a Pid.
 %%      Similar to {@link mapred_stream/5}
-%% @spec mapred_bucket_stream(rhc(), bucket(),
+%% @spec e_mapred_bucket_stream(rhc(), bucket(),
 %%                     [rhc_mapred:query_phase()], pid(), integer())
 %%          -> {ok, reference()}|{error, term()}
-mapred_bucket_stream(Rhc, Bucket, Query, ClientPid, Timeout) ->
-    mapred_stream(Rhc, Bucket, Query, ClientPid, Timeout).
+e_mapred_bucket_stream(Rhc, Bucket, Query, ClientPid, Timeout) ->
+    e_mapred_stream(Rhc, Bucket, Query, ClientPid, Timeout).
 
 %% INTERNAL
 

@@ -1,20 +1,13 @@
 -module(erliak_transport).
 
 %% Public exports
--export([connect/3,
-     % ping/2,
-     % get/5,
-     % put/4,
-     % delete/5,
-     % disconnect/1,
-     % get_server_info/2,
-     handle/3]).
+-export([connect/3, handle/3]).
 
 %% Behaviour export
 -export([behaviour_info/1]).
 
 -include("erliak.hrl").
-
+%% Behaviour functions
 behaviour_info(callbacks) ->
     [{connect,3},
      {ping,2},
@@ -27,7 +20,14 @@ behaviour_info(callbacks) ->
      {list_buckets,3},
      {list_keys,3},
      {stream_list_keys,4},
-     {get_bucket,4}
+     {get_bucket,4},
+     {set_bucket,5},
+     {mapred,5},
+     {mapred_stream,6},
+     {mapred_bucket,5},
+     {mapred_bucket_stream,6},
+     {search,3},
+     {search,6}
     ];
 
 behaviour_info(_Other) ->

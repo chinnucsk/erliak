@@ -13,12 +13,12 @@
          list_buckets/0, list_buckets/1, list_buckets/2,
          list_keys/1, list_keys/2,
          stream_list_keys/1, stream_list_keys/2, stream_list_keys/3,
-         get_bucket/1, get_bucket/2, get_bucket/3
-         % set_bucket/2, set_bucket/3, set_bucket/4,
-         % mapred/2, mapred/3, mapred/4,
-         % mapred_stream/3, mapred_stream/4, mapred_stream/5,
-         % mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
-         % mapred_bucket_stream/4, mapred_bucket_stream/5,
+         get_bucket/1, get_bucket/2, get_bucket/3,
+         set_bucket/2, set_bucket/3, set_bucket/4,
+         mapred/2, mapred/3, mapred/4,
+         mapred_stream/3, mapred_stream/4, mapred_stream/5,
+         mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
+         mapred_bucket_stream/4, mapred_bucket_stream/5
          % search/2, search/4, search/5
          ]).
 
@@ -36,7 +36,7 @@
 
 do(A) ->
     {ok, C} = erliak:start_link([{transport, http}]),
-    {ok, Ref} = erliak:stream_list_keys(A),
+    {ok, _Ref} = erliak:stream_list_keys(A),
     MB = erlang:process_info(self(),[message_queue_len,messages]),
     io:format("MB ~p~n", [MB]),
     io:format("My self() ~p~n", [self()]),
@@ -46,8 +46,8 @@ do(A) ->
     after
         1000 ->
             io:format("*** timeout~n")
-    end.
-    %%erliak:stop(C).
+    end,
+    erliak:stop(C).
     
 
 %% ====================================================================
@@ -291,15 +291,6 @@ stream_list_keys(Bucket, Timeout) ->
 stream_list_keys(Bucket, Timeout, CallTimeout) ->
     gen_server:call(?MODULE, {client, stream_list_keys, [Bucket, Timeout, CallTimeout]}, infinity).
 
-%% Exists in both
-%          get_bucket/1, get_bucket/2, get_bucket/3,
-%          set_bucket/2, set_bucket/3, set_bucket/4,
-%          mapred/2, mapred/3, mapred/4,
-%          mapred_stream/3, mapred_stream/4, mapred_stream/5,
-%          mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
-%          mapred_bucket_stream/4, mapred_bucket_stream/5,
-%          search/2, search/4, search/5
-
 %% @doc Get bucket properties.
 %% @equiv get_bucket(Bucket, default_timeout)
 -spec get_bucket(bucket()) -> {ok, bucket_props()} | {error, term()}.
@@ -317,6 +308,198 @@ get_bucket(Bucket, Timeout) ->
                                                            {error, term()}.
 get_bucket(Bucket, Timeout, CallTimeout) ->
     gen_server:call(?MODULE, {client, get_bucket, [Bucket, Timeout, CallTimeout]}, infinity).
+
+%% @doc Set bucket properties.
+%% @equiv set_bucket(Bucket, BucketProps, default_timeout)
+-spec set_bucket(bucket(), bucket_props()) -> ok | {error, term()}.
+set_bucket(Bucket, BucketProps) ->
+    set_bucket(Bucket, BucketProps, default_timeout).
+
+%% @doc Set bucket properties specifying a server side timeout.
+%% @equiv set_bucket(Bucket, BucketProps, Timeout, default_call_timeout)
+-spec set_bucket(bucket(), bucket_props(), timeout()) -> ok | {error, term()}.
+set_bucket(Bucket, BucketProps, Timeout) ->
+    set_bucket(Bucket, BucketProps, Timeout, default_call_timeout).
+
+%% @doc Set bucket properties specifying a server side and local call timeout.
+-spec set_bucket(bucket(), bucket_props(), timeout(), timeout()) -> ok | {error, term()}.
+set_bucket(Bucket, BucketProps, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, set_bucket, [Bucket, BucketProps, Timeout, CallTimeout]}, infinity).
+    
+%% @doc Perform a MapReduce job across the cluster.
+%%      See the MapReduce documentation for explanation of behavior.
+%% @equiv mapred(Inputs, Query, default_timeout)
+-spec mapred(mapred_inputs(), [mapred_queryterm()]) ->
+                    {ok, mapred_result()} |
+                    {error, {badqterm, mapred_queryterm()}} |
+                    {error, timeout} |
+                    {error, term()}.
+mapred(Inputs, Query) ->
+    mapred(Inputs, Query, default_timeout).
+
+%% @doc Perform a MapReduce job across the cluster with a job timeout.
+%%      See the MapReduce documentation for explanation of behavior.
+%% @equiv mapred(Inputs, Query, Timeout, default_call_timeout)
+-spec mapred(mapred_inputs(), [mapred_queryterm()], timeout()) ->
+                    {ok, mapred_result()} |
+                    {error, {badqterm, mapred_queryterm()}} |
+                    {error, timeout} |
+                    {error, term()}.
+mapred(Inputs, Query, Timeout) ->
+    mapred(Inputs, Query, Timeout, default_call_timeout).
+
+%% @doc Perform a MapReduce job across the cluster with a job and
+%%      local call timeout.  See the MapReduce documentation for
+%%      explanation of behavior. This is implemented by using
+%%      <code>mapred_stream/6</code> and then waiting for all results.
+%% @see mapred_stream/6
+-spec mapred(mapred_inputs(), [mapred_queryterm()], timeout(), timeout()) ->
+                    {ok, mapred_result()} |
+                    {error, {badqterm, mapred_queryterm()}} |
+                    {error, timeout} |
+                    {error, term()}.
+mapred(Inputs, Query, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, mapred, [Inputs, Query, Timeout, CallTimeout]}, infinity).
+
+%% @doc Perform a streaming MapReduce job across the cluster sending results
+%%      to ClientPid.
+%%      See the MapReduce documentation for explanation of behavior.
+%%      The ClientPid will receive messages in this format:
+%%      {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
+%%      {ReqId::req_id(), done}'''
+%% @equiv mapred_stream(Inputs, Query, ClientPid, default_timeout)
+-spec mapred_stream(Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid()) ->
+                           {ok, req_id()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_stream(Inputs, Query, ClientPid) ->
+    mapred_stream(Inputs, Query, ClientPid, default_timeout).
+
+%% @doc Perform a streaming MapReduce job with a timeout across the cluster.
+%%      sending results to ClientPid.
+%%      See the MapReduce documentation for explanation of behavior.
+%%      The ClientPid will receive messages in this format:
+%% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
+%%      {ReqId::req_id(), done}'''
+%% @equiv mapred_stream(Inputs, Query, ClientPid, Timeout, default_call_timeout)
+-spec mapred_stream(Inputs::mapred_inputs(),Query::[mapred_queryterm()], ClientPid::pid(), Timeout::timeout()) ->
+                           {ok, req_id()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_stream(Inputs, Query, ClientPid, Timeout) ->
+    mapred_stream(Inputs, Query, ClientPid, Timeout, default_call_timeout).
+
+%% @doc Perform a streaming MapReduce job with a map/red timeout across the cluster,
+%%      a local call timeout and sending results to ClientPid.
+%%      See the MapReduce documentation for explanation of behavior.
+%%      The ClientPid will receive messages in this format:
+%% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
+%%      {ReqId::req_id(), done}'''
+-spec mapred_stream(Inputs::mapred_inputs(),
+                    Query::[mapred_queryterm()], ClientPid::pid(),
+                    Timeout::timeout(), CallTimeout::timeout()) ->
+                           {ok, req_id()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_stream(Inputs, Query, ClientPid, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, mapred_stream, [Inputs, Query, ClientPid, Timeout, CallTimeout], infinity).
+
+
+%% @doc Perform a MapReduce job against a bucket across the cluster.
+%%      See the MapReduce documentation for explanation of behavior.
+%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+%% @equiv mapred_bucket(Bucket, Query, default_timeout)
+-spec mapred_bucket(Bucket::bucket(), Query::[mapred_queryterm()]) ->
+                           {ok, mapred_result()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_bucket(Bucket, Query) ->
+    mapred_bucket(Bucket, Query, default_timeout).
+
+%% @doc Perform a MapReduce job against a bucket with a timeout
+%%      across the cluster.
+%%      See the MapReduce documentation for explanation of behavior.
+%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+%% @equiv mapred_bucket(Bucket, Query, Timeout, default_timeout(mapred_bucket_call_timeout))
+-spec mapred_bucket(Bucket::bucket(), Query::[mapred_queryterm()], Timeout::timeout()) ->
+                           {ok, mapred_result()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_bucket(Bucket, Query, Timeout) ->
+    mapred_bucket(Bucket, Query, Timeout, default_call_timeout).
+
+%% @doc Perform a MapReduce job against a bucket with a timeout
+%%      across the cluster and local call timeout.
+%%      See the MapReduce documentation for explanation of behavior.
+%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+-spec mapred_bucket(Bucket::bucket(), Query::[mapred_queryterm()],
+                    Timeout::timeout(), CallTimeout::timeout()) ->
+                           {ok, mapred_result()} |
+                           {error, {badqterm, mapred_queryterm()}} |
+                           {error, timeout} |
+                           {error, Err :: term()}.
+mapred_bucket(Bucket, Query, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, mapred_bucket, [Bucket, Query, Timeout, CallTimeout]}, infinity).
+
+%% @doc Perform a streaming MapReduce job against a bucket with a timeout
+%%      across the cluster.
+%%      See the MapReduce documentation for explanation of behavior.
+%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+%%      The ClientPid will receive messages in this format:
+%% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
+%%      {ReqId::req_id(), done}'''
+%% @equiv     mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, default_call_timeout)
+-spec mapred_bucket_stream(bucket(), [mapred_queryterm()], ClientPid::pid(), timeout()) ->
+                                  {ok, req_id()} |
+                                  {error, term()}.
+mapred_bucket_stream(Bucket, Query, ClientPid, Timeout) ->
+    mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, default_call_timeout).
+
+%% @doc Perform a streaming MapReduce job against a bucket with a server timeout
+%%      across the cluster and a call timeout.
+%%      See the MapReduce documentation for explanation of behavior.
+%% <em>This uses list_keys under the hood and so is potentially an expensive operation that should not be used in production.</em>
+%%      The ClientPid will receive messages in this format:
+%% ```  {ReqId::req_id(), {mapred, Phase::non_neg_integer(), mapred_result()}}
+%%      {ReqId::req_id(), done}'''
+-spec mapred_bucket_stream(bucket(), [mapred_queryterm()], ClientPid::pid(), timeout(), timeout()) ->
+                                  {ok, req_id()} | {error, term()}.
+mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, mapred_bucket_stream, [Bucket, Query, ClientPid, Timeout, CallTimeout]}, infinity).
+
+%% @doc Execute a search query. This command will return an error
+%%      unless executed against a Riak Search cluster.  Because
+%%      Protocol Buffers has no native Search interface, this uses the
+%%      search inputs to MapReduce.
+-spec search(bucket(), string()) ->  {ok, mapred_result()} | {error, term()}.
+search(Bucket, SearchQuery) ->
+    gen_server:call(?MODULE, {client, search, [Bucket, SearchQuery]}, infinity).
+
+%% @doc Execute a search query and feed the results into a MapReduce
+%%      query.  This command will return an error
+%%      unless executed against a Riak Search cluster.
+%% @equiv search(Bucket, SearchQuery, MRQuery, Timeout, default_call_timeout)
+-spec search(bucket(), string(), [mapred_queryterm()], timeout()) ->
+                    {ok, mapred_result()} | {error, term()}.
+search(Bucket, SearchQuery, MRQuery, Timeout) ->
+    search(Bucket, SearchQuery, MRQuery, Timeout, default_call_timeout).
+
+
+%% @doc Execute a search query and feed the results into a MapReduce
+%%      query with a timeout on the call. This command will return
+%%      an error unless executed against a Riak Search cluster.
+-spec search(bucket(), string(), [mapred_queryterm()], timeout(), timeout()) ->
+                    {ok, mapred_result()} | {error, term()}.
+search(Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->
+    gen_server:call(?MODULE, {client, search, [Bucket, SearchQuery, MRQuery, Timeout, CallTimeout]}, infinity).
+
+%% Exists in both
+%          search/2, search/4, search/5
 
 %% ====================================================================
 %% gen_server callbacks
