@@ -67,6 +67,10 @@
 -record(connection, {
 	  transport_module :: module(), % Transport module
 	  connection :: connection_ref(), % Connection that is active
+<<<<<<< HEAD
     caller :: pid() % PID of the caller, for streaming calls
+=======
+    caller :: pid() % PID of the calling process
+>>>>>>> caller pid is now stored in the gen_server state
 			%% TODO more?
 	 }).

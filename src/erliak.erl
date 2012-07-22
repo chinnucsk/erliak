@@ -549,7 +549,10 @@ handle_call(stop, _From, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(_Info, State) ->
+%% Handles messages sent to the gen_server
+handle_info(Info, State) ->
+    Caller = State#connection.caller,
+    Caller ! Info,
     {noreply, State}.
 
 terminate(_Reason, _State) ->
