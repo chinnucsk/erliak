@@ -44,127 +44,168 @@ connect(Address, Port, Options) ->
     start_link(Address, Port, Options).
 
 
-ping(Connection, default_timeout) ->
+ping(State, default_timeout) ->
+    Connection = State#connection.connection,
     e_ping(Connection);
-ping(Connection, Timeout) ->
+ping(State, Timeout) ->
+    Connection = State#connection.connection,
     e_ping(Connection, Timeout).
 
 
-get(Connection, Bucket, Key, Options, default_timeout) ->
+get(State, Bucket, Key, Options, default_timeout) ->
+    Connection = State#connection.connection,
     e_get(Connection, Bucket, Key, Options);
-get(Connection, Bucket, Key, Options, Timeout) ->
+get(State, Bucket, Key, Options, Timeout) ->
+    Connection = State#connection.connection,
     e_get(Connection, Bucket, Key, Options, Timeout).
 
 
-put(Connection, Object, Options, default_timeout) ->
+put(State, Object, Options, default_timeout) ->
+    Connection = State#connection.connection,
     e_put(Connection, Object, Options);
-put(Connection, Object, Options, Timeout) ->
+put(State, Object, Options, Timeout) ->
+    Connection = State#connection.connection,
     e_put(Connection, Object, Options, Timeout).
 
 
-delete(Connection, Bucket, Key, Options, default_timeout) ->
+delete(State, Bucket, Key, Options, default_timeout) ->
+    Connection = State#connection.connection,
     e_delete(Connection, Bucket, Key, Options);
-delete(Connection, Bucket, Key, Options, Timeout) ->
+delete(State, Bucket, Key, Options, Timeout) ->
+    Connection = State#connection.connection,
     e_delete(Connection, Bucket, Key, Options, Timeout).
 
 
-disconnect(Connection) ->
+disconnect(State) ->
+    Connection = State#connection.connection,
     stop(Connection).
 
 
-get_server_info(Connection, default_timeout) ->
+get_server_info(State, default_timeout) ->
+    Connection = State#connection.connection,
     e_get_server_info(Connection);
-get_server_info(Connection, Timeout) ->
+get_server_info(State, Timeout) ->
+    Connection = State#connection.connection,
     e_get_server_info(Connection, Timeout).
 
 
-get_client_id(Connection, default_timeout) ->
+get_client_id(State, default_timeout) ->
+    Connection = State#connection.connection,
     e_get_client_id(Connection);
-get_client_id(Connection, Timeout) ->    
+get_client_id(State, Timeout) ->    
+    Connection = State#connection.connection,
     e_get_client_id(Connection, Timeout).
 
 
-list_buckets(Connection, default_timeout, default_call_timeout) ->
+list_buckets(State, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_list_buckets(Connection);
-list_buckets(Connection, Timeout, default_call_timeout) ->
+list_buckets(State, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_list_buckets(Connection, Timeout);
-list_buckets(Connection, Timeout, CallTimeout) ->    
+list_buckets(State, Timeout, CallTimeout) -> 
+    Connection = State#connection.connection,   
     e_list_buckets(Connection, Timeout, CallTimeout).
 
 
-list_keys(Connection, Bucket, default_timeout) ->
+list_keys(State, Bucket, default_timeout) ->
+    Connection = State#connection.connection,
     e_list_keys(Connection, Bucket);
-list_keys(Connection, Bucket, Timeout) ->
+list_keys(State, Bucket, Timeout) ->
+    Connection = State#connection.connection,
     e_list_keys(Connection, Bucket, Timeout).
 
 
 %% TODO get rid of PB gen_server in favour of erliak's gen_server
-stream_list_keys(Connection, Bucket, default_timeout, default_call_timeout) ->
+stream_list_keys(State, Bucket, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     io:format("stream_list_keys | My self() ~p~n", [self()]),
     e_stream_list_keys(Connection, Bucket);
-stream_list_keys(Connection, Bucket, Timeout, default_call_timeout) ->    
+stream_list_keys(State, Bucket, Timeout, default_call_timeout) ->    
+    Connection = State#connection.connection,
     e_stream_list_keys(Connection, Bucket, Timeout);
-stream_list_keys(Connection, Bucket, Timeout, CallTimeout) ->    
+stream_list_keys(State, Bucket, Timeout, CallTimeout) ->    
+    Connection = State#connection.connection,
     e_stream_list_keys(Connection, Bucket, Timeout, CallTimeout).    
 
 
-get_bucket(Connection, Bucket, default_timeout, default_call_timeout) ->
+get_bucket(State, Bucket, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_get_bucket(Connection, Bucket);
-get_bucket(Connection, Bucket, Timeout, default_call_timeout) ->    
+get_bucket(State, Bucket, Timeout, default_call_timeout) ->    
+    Connection = State#connection.connection,
     e_get_bucket(Connection, Bucket, Timeout);
-get_bucket(Connection, Bucket, Timeout, CallTimeout) ->
+get_bucket(State, Bucket, Timeout, CallTimeout) ->
+    Connection = State#connection.connection,
     e_get_bucket(Connection, Bucket, Timeout, CallTimeout).
 
 
-set_bucket(Connection, Bucket, BucketProps, default_timeout, default_call_timeout) ->
+set_bucket(State, Bucket, BucketProps, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_set_bucket(Connection, Bucket, BucketProps);
-set_bucket(Connection, Bucket, BucketProps, Timeout, default_call_timeout) ->
+set_bucket(State, Bucket, BucketProps, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_set_bucket(Connection, Bucket, BucketProps, Timeout);
-set_bucket(Connection, Bucket, BucketProps, Timeout, CallTimeout) ->
+set_bucket(State, Bucket, BucketProps, Timeout, CallTimeout) ->
+    Connection = State#connection.connection,
     e_set_bucket(Connection, Bucket, BucketProps, Timeout, CallTimeout).
 
 
-mapred(Connection, Inputs, Query, default_timeout, default_call_timeout) ->
+mapred(State, Inputs, Query, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred(Connection, Inputs, Query);
-mapred(Connection, Inputs, Query, Timeout, default_call_timeout) ->
+mapred(State, Inputs, Query, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred(Connection, Inputs, Query, Timeout);
-mapred(Connection, Inputs, Query, Timeout, CallTimeout) ->
+mapred(State, Inputs, Query, Timeout, CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred(Connection, Inputs, Query, Timeout, CallTimeout).
 
 
 %% TODO get rid of PB gen_server in favour of erliak's gen_server
-mapred_stream(Connection, Inputs, Query, ClientPid, default_timeout, default_call_timeout) ->
+mapred_stream(State, Inputs, Query, ClientPid, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred_stream(Connection, Inputs, Query, ClientPid);
-mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, default_call_timeout) ->
+mapred_stream(State, Inputs, Query, ClientPid, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout);
-mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
+mapred_stream(State, Inputs, Query, ClientPid, Timeout, CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, CallTimeout).
 
 
-mapred_bucket(Connection, Bucket, Query, default_timeout, default_call_timeout) ->
+mapred_bucket(State, Bucket, Query, default_timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred_bucket(Connection, Bucket, Query);
-mapred_bucket(Connection, Bucket, Query, Timeout, default_call_timeout) ->
+mapred_bucket(State, Bucket, Query, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred_bucket(Connection, Bucket, Query, Timeout);
-mapred_bucket(Connection, Bucket, Query, Timeout, CallTimeout) ->    
+mapred_bucket(State, Bucket, Query, Timeout, CallTimeout) ->    
+    Connection = State#connection.connection,
     e_mapred_bucket(Connection, Bucket, Query, Timeout, CallTimeout).
 
 %% TODO consistent timeout behaviour?
 % mapred_bucket_stream(Connection, Bucket, Query, ClientPid, default_timeout, default_call_timeout) ->
 %     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid);
-mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, default_call_timeout) ->
+mapred_bucket_stream(State, Bucket, Query, ClientPid, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout);
-mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, CallTimeout) ->    
+mapred_bucket_stream(State, Bucket, Query, ClientPid, Timeout, CallTimeout) ->    
+    Connection = State#connection.connection,
     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, CallTimeout).
 
-search(Connection, Bucket, SearchQuery) ->
+search(State, Bucket, SearchQuery) ->
+    Connection = State#connection.connection,
     e_search(Connection, Bucket, SearchQuery).
 
 %% TODO consistent timeout behaviour?
 % search(Connection, Bucket, SearchQuery, MRQuery, default_timeout, default_call_timeout) ->
 %     e_search(Connection, Bucket, SearchQuery, MRQuery);
-search(Connection, Bucket, SearchQuery, MRQuery, Timeout, default_call_timeout) ->
+search(State, Bucket, SearchQuery, MRQuery, Timeout, default_call_timeout) ->
+    Connection = State#connection.connection,
     e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout);
-search(Connection, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->    
+search(State, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->    
+    Connection = State#connection.connection,
     e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout, CallTimeout).
 
 

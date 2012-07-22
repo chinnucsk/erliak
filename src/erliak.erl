@@ -82,7 +82,8 @@ start_link(Address, Port) ->
 -spec start_link(address(), portnum(), client_options()) -> {ok, pid()} | {error, term()}.
 start_link(Address, Port, Options) ->
     io:format("start_link self() ~p~n", [self()]),
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [Address, Port, Options], []).
+    Caller = self(),
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [Address, Port, Options, Caller], []).
 
 
 %% @TODO similar behaviour for start as for start_link
@@ -506,11 +507,11 @@ search(Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->
 %% ====================================================================
 
 %% @private
-init([Address, Port, Options]) ->
+init([Address, Port, Options, Caller]) ->
     %% TODO REFACTOR?
     io:format("init() - self() ~p~n", [self()]),
     % io:format("init() - Caller ~p~n", [Caller]),
-    {ok, State} = erliak_transport:connect(Address, Port, Options),
+    {ok, State} = erliak_transport:connect(Address, Port, Options, Caller),
     io:format("State = ~p~n", [State]),
     {ok, State}.
 

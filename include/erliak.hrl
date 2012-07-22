@@ -66,6 +66,7 @@
 
 -record(connection, {
 	  transport_module :: module(), % Transport module
-	  connection :: connection_ref() % Connection that is active
+	  connection :: connection_ref(), % Connection that is active
+    caller :: pid() % PID of the caller, for streaming calls
 			%% TODO more?
 	 }).

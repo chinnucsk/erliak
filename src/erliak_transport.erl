@@ -1,7 +1,7 @@
 -module(erliak_transport).
 
 %% Public exports
--export([connect/3, handle/3]).
+-export([connect/4, handle/3]).
 
 %% Behaviour export
 -export([behaviour_info/1]).
@@ -57,8 +57,8 @@ get_transport_module(Transport) ->
 
 %% @doc Connects to the Riak server on Address:Port with Options using
 %%      the transport protocol specified in Options
--spec connect(address(), portnum(), client_options()) -> {ok, connection_ref()}.
-connect(Address, Port, Options) ->
+-spec connect(address(), portnum(), client_options(), pid()) -> {ok, connection_ref()}.
+connect(Address, Port, Options, Caller) ->
     %% Extract (and remove) the transport from the options
     Transport = proplists:get_value(transport, Options),
     Opts = proplists:delete(transport, Options),
@@ -69,15 +69,16 @@ connect(Address, Port, Options) ->
     %% Store this connection in state
     State = #connection{
         connection = Connection,
-        transport_module = TModule
+        transport_module = TModule,
+        caller = Caller
     },
     {ok, State}.
 
 %% "Forwards" Function(Arguments) to the transport module set in State
 handle(State, Function, Arguments) ->    
     TModule = State#connection.transport_module,
-    Conn = State#connection.connection,
-    CallArgs = [Conn|Arguments],
+    % Conn = State#connection.connection,
+    CallArgs = [State|Arguments],
     erlang:apply(TModule, Function, CallArgs).
 
 % Refactoring

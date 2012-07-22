@@ -36,32 +36,39 @@ connect(Address, Port, Options) ->
     %% TODO build a lookup table from the links returned from getting http://Address:Port/
     {ok, Connection}.
 
-ping(Connection, _Timeout) ->
+ping(State, _Timeout) ->
+    Connection = State#connection.connection,
     ok = e_ping(Connection),
     pong.
 
-get(Connection, Bucket, Key, Options, _Timeout) ->
+get(State, Bucket, Key, Options, _Timeout) ->
+    Connection = State#connection.connection,
     e_get(Connection, Bucket, Key, Options).
 
-put(Connection, Object, Options, _Timeout) ->
+put(State, Object, Options, _Timeout) ->
+    Connection = State#connection.connection,
     e_put(Connection, Object, Options).
 
-delete(Connection, Bucket, Key, Options, _Timeout) ->
+delete(State, Bucket, Key, Options, _Timeout) ->
+    Connection = State#connection.connection,
     e_delete(Connection, Bucket, Key, Options).
 
-disconnect(_Connection) ->
+disconnect(_State) ->
     ok.
 
-get_server_info(Connection, _Timeout) ->
+get_server_info(State, _Timeout) ->
+    Connection = State#connection.connection,
     e_get_server_info(Connection).
 
-get_client_id(Connection, _Timeout) ->
+get_client_id(State, _Timeout) ->
+    Connection = State#connection.connection,
     e_get_client_id(Connection).
 
 %% @doc List all buckets on the server
 %% <em>This is a potentially expensive operation and should not be used in production.</em>
 -spec list_buckets(#rhc{}, timeout(), timeout()) -> {ok, [bucket()]} | {error, term()}.
-list_buckets(Connection, _Timeout, _CallTimeout) ->
+list_buckets(State, _Timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     Url = list_buckets_url(Connection),
     case request(get, Url, ["200","204"]) of
         {ok, _Status, _Headers, Body} ->
@@ -72,54 +79,71 @@ list_buckets(Connection, _Timeout, _CallTimeout) ->
             {error, Error}
     end.
 
-list_keys(Connection, Bucket, _Timeout) ->
+list_keys(State, Bucket, _Timeout) ->
+    Connection = State#connection.connection,
     e_list_keys(Connection, Bucket).
 
 %% TODO needs to know the PID of the calling process to be able to forward the 
 %%  messages received to it
-stream_list_keys(Connection, Bucket, _Timeout, _CallTimeout) ->
+stream_list_keys(State, Bucket, _Timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     % io:format("erliak_http stream_list_keys My self() ~p~n", [self()]),
     A = e_stream_list_keys(Connection, Bucket),
+    receive 
+        MSG ->
+            io:format("MSG = ~p~n", [MSG])
+    end,
     %%io:format("erliak_http stream_list_keys My self() ~p~n", [Connection#]),
     % timer:sleep(500),
     % MB = erlang:process_info(self(),[message_queue_len,messages]),
     % io:format("MB ~p~n", [MB]),
     A.
 
-get_bucket(Connection, Bucket, _Timeout, _CallTimeout) ->    
+get_bucket(State, Bucket, _Timeout, _CallTimeout) ->    
+    Connection = State#connection.connection,
     e_get_bucket(Connection, Bucket).
 
-set_bucket(Connection, Bucket, BucketProps, _Timeout, _CallTimeout) ->
+set_bucket(State, Bucket, BucketProps, _Timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     e_set_bucket(Connection, Bucket, BucketProps).
 
-mapred(Connection, Inputs, Query, default_timeout, _CallTimeout) ->
+mapred(State, Inputs, Query, default_timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred(Connection, Inputs, Query);
-mapred(Connection, Inputs, Query, Timeout, _CallTimeout) ->
+mapred(State, Inputs, Query, Timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred(Connection, Inputs, Query, Timeout).
 
-mapred_stream(Connection, Inputs, Query, ClientPid, default_timeout, _CallTimeout) ->
+mapred_stream(State, Inputs, Query, ClientPid, default_timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred_stream(Connection, Inputs, Query, ClientPid);
-mapred_stream(Connection, Inputs, Query, ClientPid, Timeout, _CallTimeout) ->    
+mapred_stream(State, Inputs, Query, ClientPid, Timeout, _CallTimeout) ->    
+    Connection = State#connection.connection,
     e_mapred_stream(Connection, Inputs, Query, ClientPid, Timeout).
 
-mapred_bucket(Connection, Bucket, Query, default_timeout, _CallTimeout) ->
+mapred_bucket(State, Bucket, Query, default_timeout, _CallTimeout) ->
+    Connection = State#connection.connection,
     e_mapred_bucket(Connection, Bucket, Query);
-mapred_bucket(Connection, Bucket, Query, Timeout, _CallTimeout) ->    
+mapred_bucket(State, Bucket, Query, Timeout, _CallTimeout) ->    
+    Connection = State#connection.connection,
     e_mapred_bucket(Connection, Bucket, Query, Timeout).
 
 %% TODO consistent timeout behaviour?
 % mapred_bucket_stream(Connection, Bucket, Query, ClientPid, default_timeout, _CallTimeout) ->
 %     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid);
-mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout, _CallTimeout) ->    
+mapred_bucket_stream(State, Bucket, Query, ClientPid, Timeout, _CallTimeout) ->    
+    Connection = State#connection.connection,
     e_mapred_bucket_stream(Connection, Bucket, Query, ClientPid, Timeout).
 
-search(Connection, Bucket, SearchQuery) ->
+search(State, Bucket, SearchQuery) ->
+    Connection = State#connection.connection,
     e_search(Connection, Bucket, SearchQuery).
 
 %% TODO consistent timeout behaviour?
 % search(Connection, Bucket, SearchQuery, MRQuery, default_timeout, _CallTimeout) ->    
 %     e_search(Connection, Bucket, SearchQuery, MRQuery);
-search(Connection, Bucket, SearchQuery, MRQuery, Timeout, _CallTimeout) ->            
+search(State, Bucket, SearchQuery, MRQuery, Timeout, _CallTimeout) ->            
+    Connection = State#connection.connection,
     e_search(Connection, Bucket, SearchQuery, MRQuery, Timeout).
 
 
