@@ -87,17 +87,18 @@ list_keys(State, Bucket, _Timeout) ->
 %%  messages received to it
 stream_list_keys(State, Bucket, _Timeout, _CallTimeout) ->
     Connection = State#connection.connection,
-    % io:format("erliak_http stream_list_keys My self() ~p~n", [self()]),
-    A = e_stream_list_keys(Connection, Bucket),
-    receive 
-        MSG ->
-            io:format("MSG = ~p~n", [MSG])
-    end,
+    % io:format("************* erliak_http stream_list_keys My self() ~p~n", [self()]),
+    e_stream_list_keys(Connection, Bucket).
+    % A = e_stream_list_keys(Connection, Bucket),
+    % receive 
+    %     MSG ->
+    %         io:format("MSG = ~p~n", [MSG])
+    % end,
     %%io:format("erliak_http stream_list_keys My self() ~p~n", [Connection#]),
     % timer:sleep(500),
     % MB = erlang:process_info(self(),[message_queue_len,messages]),
     % io:format("MB ~p~n", [MB]),
-    A.
+    % A.
 
 get_bucket(State, Bucket, _Timeout, _CallTimeout) ->    
     Connection = State#connection.connection,

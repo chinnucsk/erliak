@@ -37,14 +37,14 @@
 do(A) ->
     {ok, C} = erliak:start_link([{transport, http}]),
     {ok, _Ref} = erliak:stream_list_keys(A),
-    MB = erlang:process_info(self(),[message_queue_len,messages]),
-    io:format("MB ~p~n", [MB]),
-    io:format("My self() ~p~n", [self()]),
+    % MB = erlang:process_info(self(),[message_queue_len,messages]),
+    % io:format("MB ~p~n", [MB]),
+    % io:format("My self() ~p~n", [self()]),
     receive
         A ->
             io:format("*** ~p~n", [A])
     after
-        1000 ->
+        10000 ->
             io:format("*** timeout~n")
     end,
     erliak:stop(C).
@@ -517,7 +517,6 @@ init([Address, Port, Options, Caller]) ->
 
 %% Handling client API callbacks
 handle_call({client, Function, Arguments}, From, State) ->
-
     io:format("erliak:handle_call From = ~p~n", [From]),
     Reply = erliak_transport:handle(State, Function, Arguments),
     {reply, Reply, State};
@@ -550,8 +549,9 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 %% Handles messages sent to the gen_server
-handle_info(Info, State) ->
+handle_info(Info, State) ->        
     Caller = State#connection.caller,
+    io:format("*** Forwarding ~p to ~p~n", [Info, Caller]),
     Caller ! Info,
     {noreply, State}.
 
