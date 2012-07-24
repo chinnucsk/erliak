@@ -154,7 +154,15 @@ test_suite() ->
 	fun cleanup/1,
 	?_test( begin			
 			%% TODO get rid of PB gen_server in favour of erliak's gen_server
-			{ok, Ref} = erliak:stream_list_keys(<<"even_emptier_bucket">>)
+			{ok, Ref} = erliak:stream_list_keys(<<"even_emptier_bucket">>)			
+			% MB = erlang:process_info(self(),[message_queue_len,messages]),
+   %  		io:format("*************** MB ~p~n", [MB]),
+			% ?assertEqual(ok, self())
+			% receive
+			% 	Msg ->
+			% 		Msg
+			% end
+
 			% receive
 			% 	{GRef, done} ->
 			% 		?assertEqual(GRef, Ref)
@@ -291,9 +299,216 @@ test_suite() ->
 			?assertEqual({ok, [{0, [2]}]},
             	erliak:mapred([{test_bucket(), test_key()}],
                               [{map, {jsanon, <<"function (v) { return [JSON.parse(v.values[0].data)]; }">>},
-								undefined, true}]))
+							  undefined, true}]))
+		end)}},
+	 {Transport ++ " - javascript named map test",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			O = riakc_obj:new(test_bucket(), test_key()),
+			erliak:put(riakc_obj:update_value(O, <<"99">>, "application/json")),
+            ?assertEqual({ok, [{0, [99]}]},
+				erliak:mapred([{test_bucket(), test_key()}],
+                              [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, true}],
+                              500))
+		end)}},
+	 {Transport ++ " - javascript_source_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			Store = fun({K,V}) ->
+				O=riakc_obj:new(<<"bucket">>, K),
+				erliak:put(riakc_obj:update_value(O, V, "application/json"))
+			end,
+			[Store(KV) || KV <- [{<<"foo">>, <<"2">>},
+								 {<<"bar">>, <<"3">>},
+								 {<<"baz">>, <<"4">>}]],
+
+			?assertEqual({ok, [{1, [3]}]},
+				erliak:mapred([{<<"bucket">>, <<"foo">>},
+							   {<<"bucket">>, <<"bar">>},
+							   {<<"bucket">>, <<"baz">>}],
+							  [{map, {jsanon, <<"function (v) { return [1]; }">>}, undefined, false},
+							   {reduce, {jsanon,
+								<<"function(v) {
+									total = v.reduce(
+										function(prev,curr,idx,array) {
+										return prev+curr;
+									}, 0);
+									return [total];
+								}">>},
+								undefined, true}],
+								500, 500))
+		end)}},
+	 {Transport ++ " - javascript_named_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			Store = fun({K,V}) ->
+            	O=riakc_obj:new(<<"bucket">>, K),
+             	erliak:put(riakc_obj:update_value(O, V, "application/json"))
+     		end,
+			[Store(KV) || KV <- [{<<"foo">>, <<"2">>},
+                  				 {<<"bar">>, <<"3">>},
+                  				 {<<"baz">>, <<"4">>}]],
+			?assertEqual({ok, [{1, [9]}]},
+	          	erliak:mapred([{<<"bucket">>, <<"foo">>},
+	                           {<<"bucket">>, <<"bar">>},
+	                           {<<"bucket">>, <<"baz">>}],
+	                          [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+	                           {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]))
+		end)}},
+	 {Transport ++ " - javascript_bucket_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			Store = fun({K,V}) ->
+            	O=riakc_obj:new(<<"bucket">>, K),
+             	erliak:put(riakc_obj:update_value(O, V, "application/json"))
+     		end,
+			[Store(KV) || KV <- [{<<"foo">>, <<"2">>},
+            				     {<<"bar">>, <<"3">>},
+                  				 {<<"baz">>, <<"4">>}]],
+			?assertEqual({ok, [{1, [9]}]},
+          		erliak:mapred_bucket(<<"bucket">>,
+                                	 [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+                                 	  {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]))
+		end)}},
+	 {Transport ++ " - javascript_arg_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+         	O=riakc_obj:new(<<"bucket">>, <<"foo">>),
+         	erliak:put(riakc_obj:update_value(O, <<"2">>, "application/json")),
+         	?assertEqual({ok, [{1, [10]}]},
+          		erliak:mapred([{{<<"bucket">>, <<"foo">>}, 5},
+                          	   {{<<"bucket">>, <<"foo">>}, 10},
+                          	   {{<<"bucket">>, <<"foo">>}, 15},
+                          	   {{<<"bucket">>, <<"foo">>}, -15},
+                          	   {{<<"bucket">>, <<"foo">>}, -5}],
+                         	  [{map, {jsanon, <<"function(v, arg) { return [arg]; }">>}, undefined, false},
+                          	   {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]))
+
+		end)}},
+	 {Transport ++ " - erlang_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+         	Store = fun({K,V}) ->
+            	O=riakc_obj:new(<<"bucket">>, K),
+                erliak:put(riakc_obj:update_value(O, V, "application/json"))
+            end,
+         	[Store(KV) || KV <- [{<<"foo">>, <<"2">>},
+                              	 {<<"bar">>, <<"3">>},
+                              	 {<<"baz">>, <<"4">>}]],
+         	{ok, [{1, Results}]} = erliak:mapred([{<<"bucket">>, <<"foo">>},
+                                                  {<<"bucket">>, <<"bar">>},
+                                                  {<<"bucket">>, <<"baz">>}],
+                                                 [{map, {modfun, riak_kv_mapreduce, map_object_value}, undefined, false},
+                                                  {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]),
+         	?assertEqual([<<"2">>, <<"3">>, <<"4">>], lists:sort(Results))
+		end)}},
+	 {Transport ++ " - missing_key_erlang_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+            {ok, Results} = erliak:mapred([{<<"bucket">>, <<"foo">>},
+                                           {<<"bucket">>, <<"bar">>},
+                                           {<<"bucket">>, <<"baz">>}],
+                                          [{map, {modfun, riak_kv_mapreduce, map_object_value}, <<"include_notfound">>, false},
+                                           {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]),
+            io:format("~n************** ~p~n", [Results]),
+         	[{1, [{error, notfound}|_]}] = Results
+		end)}},
+	 {Transport ++ " - missing_key_javascript_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+            {ok, Results} = erliak:mapred([{<<"bucket">>, <<"foo">>},
+                                           {<<"bucket">>, <<"bar">>},
+                                           {<<"bucket">>, <<"baz">>}],
+                                          [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+                                           {reduce, {jsfun, <<"Riak.reduceSort">>}, undefined, true}]),                        
+            [{1,
+            	[{struct,[{<<"not_found">>,
+                       {struct,[_, _, {<<"keydata">>,<<"undefined">>}]}}]}|_]}] = Results             	           
+		end)}},
+	 {Transport ++ " - map reduce bad inputs",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+            Res = erliak:mapred(undefined,
+                                [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+                                 {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]),
+            ?assertEqual({error, {0, <<"{inputs,{\"Inputs must be a binary bucket, a tuple of bucket and key-filters, a list of target tuples, or a search, index, or modfun tuple:\",\n         undefined}}">>}},
+                         Res)
+		end)}},
+	 {Transport ++ " - map reduce bad input keys",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+            Res = erliak:mapred([<<"b">>], % no {B,K} tuple
+                                [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+                                 {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]),
+            ?assertEqual({error,{0, <<"{inputs,{\"Inputs target tuples must be {B,K} or {{B,K},KeyData}:\",[<<\"b\">>]}}">>}},
+                         Res)
+		end)}},
+	%% TODO OLD ASSERTION
+	% ?assertEqual({error,<<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}, Res)
+	% ACTUALLY RETURNS {error, {0, <<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}}
+	 {Transport ++ " - map reduce bad query",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			Res = erliak:mapred([{<<"b">>,<<"k">>}], % no {B,K} tuple
+        						 undefined),
+            ?assertEqual({error,{0, <<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}},
+                         Res)
+		end)}},
+	 {Transport ++ " - javascript_source_map_reduce_test()",
+      { setup,
+	fun setup/0,
+	fun cleanup/1,
+	?_test( begin
+			ok
 		end)}}
     ].
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+
 
 switch_protocol_to_pb_test_() ->
     [{"switch to pb as default",
