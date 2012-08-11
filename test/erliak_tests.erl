@@ -1,6 +1,6 @@
 -module(erliak_tests).
 -include_lib("eunit/include/eunit.hrl").
-%%-include("erliak.hrl").
+-include("erliak.hrl").
 -compile(export_all).
 %% ===================================================================
 %% Unit Tests

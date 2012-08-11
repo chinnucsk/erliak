@@ -76,7 +76,7 @@ delete(State, Bucket, Key, Options, Timeout) ->
     e_delete(Connection, Bucket, Key, Options, Timeout).
 
 
-disconnect(State) ->
+disconnect(State) ->    
     Connection = State#connection.connection,
     stop(Connection).
 
@@ -902,17 +902,17 @@ handle_call(is_connected, _From, State) ->
 handle_call({set_options, Options}, _From, State) ->
     {reply, ok, parse_options(Options, State)};
 handle_call(stop, _From, State) ->
-    _ = disconnect(State),
+    _ = e_disconnect(State),
     {stop, normal, ok, State}.
 
 %% @private
 handle_info({tcp_error, _Socket, Reason}, State) ->
     error_logger:error_msg("PBC client TCP error for ~p:~p - ~p\n",
                            [State#state.address, State#state.port, Reason]),
-    disconnect(State);
+    e_disconnect(State);
 
 handle_info({tcp_closed, _Socket}, State) ->
-    disconnect(State);
+    e_disconnect(State);
 
 %% Make sure the two Sock's match.  If a request timed out, but there was
 %% a response queued up behind it we do not want to process it.  Instead
@@ -947,7 +947,7 @@ handle_info({req_timeout, Ref}, State) ->
             case Ref == Active#request.ref of
                 true ->  %% Matches the current operation
                     NewState = maybe_reply(on_timeout(State#state.active, State)),
-                    disconnect(NewState#state{active = undefined});
+                    e_disconnect(NewState#state{active = undefined});
                 false ->
                     {noreply, remove_queued_request(Ref, State)}
             end
@@ -959,7 +959,7 @@ handle_info(reconnect, State) ->
         {error, Reason} ->
             %% Update the failed count and reschedule a reconnection
             NewState = State#state{failed = orddict:update_counter(Reason, 1, State#state.failed)},
-            disconnect(NewState)
+            e_disconnect(NewState)
     end;
 handle_info(_, State) ->
     {noreply, State}.
