@@ -18,8 +18,8 @@
          mapred/2, mapred/3, mapred/4,
          mapred_stream/3, mapred_stream/4, mapred_stream/5,
          mapred_bucket/2, mapred_bucket/3, mapred_bucket/4,
-         mapred_bucket_stream/4, mapred_bucket_stream/5
-         % search/2, search/4, search/5
+         mapred_bucket_stream/4, mapred_bucket_stream/5,
+         search/2, search/4, search/5
          ]).
 
 %% debug
@@ -36,18 +36,29 @@
 
 do(A) ->
     {ok, C} = erliak:start_link([{transport, http}]),
-    {ok, _Ref} = erliak:stream_list_keys(A),
-    % MB = erlang:process_info(self(),[message_queue_len,messages]),
-    % io:format("MB ~p~n", [MB]),
-    % io:format("My self() ~p~n", [self()]),
-    receive
-        A ->
-            io:format("*** ~p~n", [A])
-    after
-        10000 ->
-            io:format("*** timeout~n")
-    end,
-    erliak:stop(C).
+    
+    Res = erliak:mapred(undefined,
+                                [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
+                                 {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]),
+
+    % M = erliak:mapred([{<<"bucket">>, <<"foo">>},
+    %                                        {<<"bucket">>, <<"bar">>},
+    %                                        {<<"bucket">>, <<"baz">>}],
+    %                                       [{map, {modfun, riak_kv_mapreduce, map_object_value}, <<"include_notfound">>, false},
+    %                                        {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]),
+    % {ok, _Ref} = erliak:stream_list_keys(A),
+    % % MB = erlang:process_info(self(),[message_queue_len,messages]),
+    % % io:format("MB ~p~n", [MB]),
+    % % io:format("My self() ~p~n", [self()]),
+    % receive
+    %     A ->
+    %         io:format("*** ~p~n", [A])
+    % after
+    %     10000 ->
+    %         io:format("*** timeout~n")
+    % end,
+    erliak:stop(C),
+    Res.
     
 
 %% ====================================================================
@@ -80,8 +91,7 @@ start_link(Address, Port) ->
 %% @doc Create a linked process to talk with the riak server on Address:Port
 %%      Client id will be assigned by the server.
 -spec start_link(address(), portnum(), client_options()) -> {ok, pid()} | {error, term()}.
-start_link(Address, Port, Options) ->
-    io:format("start_link self() ~p~n", [self()]),
+start_link(Address, Port, Options) ->    
     Caller = self(),
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Address, Port, Options, Caller], []).
 
@@ -499,25 +509,16 @@ search(Bucket, SearchQuery, MRQuery, Timeout) ->
 search(Bucket, SearchQuery, MRQuery, Timeout, CallTimeout) ->
     gen_server:call(?MODULE, {client, search, [Bucket, SearchQuery, MRQuery, Timeout, CallTimeout]}, infinity).
 
-%% Exists in both
-%          search/2, search/4, search/5
-
 %% ====================================================================
 %% gen_server callbacks
 %% ====================================================================
 
 %% @private
-init([Address, Port, Options, Caller]) ->
-    %% TODO REFACTOR?
-    io:format("init() - self() ~p~n", [self()]),
-    % io:format("init() - Caller ~p~n", [Caller]),
-    {ok, State} = erliak_transport:connect(Address, Port, Options, Caller),
-    io:format("State = ~p~n", [State]),
-    {ok, State}.
-
+init([Address, Port, Options, Caller]) ->    
+    erliak_transport:connect(Address, Port, Options, Caller).
+    
 %% Handling client API callbacks
-handle_call({client, Function, Arguments}, From, State) ->
-    io:format("erliak:handle_call From = ~p~n", [From]),
+handle_call({client, Function, Arguments}, From, State) ->    
     Reply = erliak_transport:handle(State, Function, Arguments),
     {reply, Reply, State};
 

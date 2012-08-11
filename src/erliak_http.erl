@@ -336,8 +336,7 @@ e_list_keys(Rhc, Bucket) ->
 e_stream_list_keys(Rhc, Bucket) ->
     Url = make_url(Rhc, Bucket, undefined, [{?Q_KEYS, ?Q_STREAM},
                                             {?Q_PROPS, ?Q_FALSE}]),
-    StartRef = make_ref(),
-    io:format("erliak_http e_stream_list_keys self() ~p~n", [self()]),
+    StartRef = make_ref(),    
     Pid = spawn(rhc_listkeys, list_keys_acceptor, [self(), StartRef]),
     case request_stream(Pid, get, Url) of
         {ok, ReqId}    ->

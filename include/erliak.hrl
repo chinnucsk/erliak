@@ -11,29 +11,71 @@
 
 %% Connection references
 -type connection_ref() :: erliak_pb:pb_connection() | erliak_http:http_connection().
-
+-type proplist() :: [proplists:property()].
 %% ====================================================================
-%% Defines
+%% Defines (from riakc_pb_socket.erl)
 %% ====================================================================
+-type ctx() :: any().
+-type rpb_req() :: atom() | tuple().
+-type rpb_resp() :: atom() | tuple().
 
+-type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's Protocol Buffers interface
 -type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
--type portnum() :: non_neg_integer(). %% The TCP port number of the Riak node's HTTP/PB interface
 
--type client_option() :: {transport, atom()}. %% Allowed client options
--type client_options() :: [client_option()]. %% List of client options
+%% ====================================================================
+%% Defines (from riakc.hrl)
+%% ====================================================================
 
--type bucket() :: binary(). %% A bucket name
--type key() :: binary(). %% A key name
+-type client_option()  :: queue_if_disconnected | {queue_if_disconnected, boolean()} |
+                   auto_reconnect | {auto_reconnect, boolean()}.
+%% Options for starting or modifying the connection:
+%% `queue_if_disconnected' when present or true will cause requests to
+%% be queued while the connection is down. `auto_reconnect' when
+%% present or true will automatically attempt to reconnect to the
+%% server if the connection fails or is lost.
+-type client_options() :: [client_option()]. %% A list of client options.
+-type client_id() :: binary(). %% A client identifier, used for differentiating client processes
+-type bucket() :: binary(). %% A bucket name.
+-type key() :: binary(). %% A key name.
 -type riakc_obj() :: riakc_obj:riakc_obj(). %% An object (bucket, key, metadata, value) stored in Riak.
--type proplist() :: [proplists:property()]. %% Type for options
-
--type client_id() :: binary() | string().
-
 -type req_id() :: non_neg_integer(). %% Request identifier for streaming requests.
-%% TODO allow for more properties when the pb interface exposes more of them
+-type server_prop() :: {node, binary()} | {server_version, binary()}. %% Server properties, as returned by the `get_server_info/1' call.
+-type server_info() :: [server_prop()]. %% A response from the `get_server_info/1' call.
 -type bucket_prop() :: {n_val, pos_integer()} | {allow_mult, boolean()}. %% Bucket property definitions.
 -type bucket_props() :: [bucket_prop()]. %% Bucket properties
+-type quorum() :: non_neg_integer() | one | all | quorum | default.  %% A quorum setting for get/put/delete requests.
+-type read_quorum() :: {r, ReadQuorum::quorum()} |
+                       {pr, PrimaryReadQuorum::quorum()}. %% Valid quorum options for get requests.
+-type write_quorum() :: {w, WriteQuorum::quorum()} |
+                        {dw, DurableWriteQuorum::quorum()} |
+                        {pw, PrimaryWriteQuorum::quorum()}. %% Valid quorum options for write requests.
+-type delete_quorum() :: read_quorum() |
+                         write_quorum() |
+                         {rw, ReadWriteQuorum::quorum()}. %% Valid quorum options for delete requests. Note that `rw' is deprecated in Riak 1.0 and later.
+-type get_option() :: read_quorum() |
+                      {if_modified, riakc_obj:vclock()} |
+                      {notfound_ok, boolean()} |
+                      {basic_quorum, boolean()} |
+                      head | deletedvclock.
 
+
+%% Valid request options for get requests. When `if_modified' is
+%% specified with a vclock, the request will fail if the object has
+%% not changed. When `head' is specified, only the metadata will be
+%% returned. When `deletedvclock' is specified, the vector clock of
+%% the tombstone will be returned if the object has been recently
+%% deleted.
+-type put_option() :: write_quorum() | return_body | return_head | if_not_modified | if_none_match.
+%% Valid request options for put requests. `return_body' returns the
+%% entire result of storing the object. `return_head' returns the
+%% metadata from the result of storing the object. `if_not_modified'
+%% will cause the request to fail if the local and remote vclocks do
+%% not match. `if_none_match' will cause the request to fail if the
+%% object already exists in Riak.
+-type get_options() :: [get_option()]. %% A list of options for a get request.
+-type put_options() :: [put_option()]. %% A list of options for a put request.
+-type search_options() :: [search_option()]. %% A list of options for a search request.
+-type delete_options() :: [delete_quorum()]. %% A list of options for a delete request.
 -type mapred_queryterm() ::  {map, mapred_funterm(), Arg::term(), Accumulate :: boolean()} |
                              {reduce, mapred_funterm(), Arg::term(),Accumulate :: boolean()} |
                              {link, Bucket :: riakc_obj:bucket(), Tag :: term(), Accumulate :: boolean()}.
@@ -59,13 +101,52 @@
                          bucket() |
                          {index, bucket(), Index::binary(), key()} |
                          {index, bucket(), Index::binary(), StartKey::key(), EndKey::key()}.
+%% Inputs for a MapReduce job.
+-type connection_failure() :: {Reason::term(), FailureCount::integer()}.
+%% The reason for connection failure and how many times that type of
+%% failure has occurred since startup.
+-type timeout_name() :: ping_timeout | get_client_id_timeout |
+                        set_client_id_timeout | get_server_info_timeout |
+                        get_timeout | put_timeout | delete_timeout |
+                        list_buckets_timeout | list_buckets_call_timeout |
+                        list_keys_timeout | stream_list_keys_timeout |
+                        stream_list_keys_call_timeout | get_bucket_timeout |
+                        get_bucket_call_timeout | set_bucket_timeout |
+                        set_bucket_call_timeout | mapred_timeout |
+                        mapred_call_timeout | mapred_stream_timeout |
+                        mapred_stream_call_timeout | mapred_bucket_timeout |
+                        mapred_bucket_call_timeout | mapred_bucket_stream_call_timeout |
+                        search_timeout | search_call_timeout |
+                        timeout.
+-type index_result() :: [key()].
+-type search_option() ::
+        {rows, non_neg_integer()} |  %% Limit rows
+        {start, non_neg_integer()} | %% Starting offset
+        {sort, binary()} |           %% sort order
+        {filter, binary()} |         %% Inline fields filtering query
+        {df, binary() } |            %% Default field
+        {op, binary() } |            %% Default op
+        {fl, [binary()]} |           %% Return fields limit (for ids only, generally)
+        {presort, binary()}.         %% Presor (key / score)
+
+-type search_doc() :: [{binary(), binary()}].
+-type search_maxscore() :: float().
+-type search_number_found() :: non_neg_integer().
+
+-record(search_results, {
+          docs :: [search_doc()],         %% Result documents
+          max_score :: float(),           %% Maximum score
+          num_found :: non_neg_integer()  %% Number of results
+         }).
+
+-type search_result() :: #search_results{}.
 
 %% ====================================================================
 %% Records
 %% ====================================================================
 
 -record(connection, {
-	transport_module :: module(), % Transport module
-	connection :: connection_ref(), % Connection that is active
+    transport_module :: module(), % Transport module
+    connection :: connection_ref(), % Connection that is active
     caller :: pid() % PID of the caller, for streaming calls
 }).

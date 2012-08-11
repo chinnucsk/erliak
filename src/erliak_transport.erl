@@ -65,7 +65,7 @@ connect(Address, Port, Options, Caller) ->
     TModule = get_transport_module(Transport),
     %% Perform connection based on the transport given
     {ok, Connection} = TModule:connect(Address, Port, Opts),
-    io:format("CONNECT self() ~p~n", [self()]),
+    % io:format("CONNECT self() ~p~n", [self()]),
     %% Store this connection in state
     State = #connection{
         connection = Connection,

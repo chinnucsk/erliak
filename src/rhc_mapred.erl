@@ -140,8 +140,9 @@ wait_for_mapred(ReqId, Timeout, Acc) ->
     receive
         {ReqId, done} -> {ok, orddict:to_list(Acc)};
         {ReqId, {mapred,Phase,Res}} ->
+            io:format("mapred, Phase, Res = ~p | ~p~n", [Phase, Res]),
             wait_for_mapred(ReqId,Timeout,orddict:append_list(Phase,Res,Acc));
-        {ReqId, {error, Reason}} -> {error, Reason}
+        {ReqId, {error, Reason}} -> io:format("MATCH ERROR REASON~n"), {error, Reason}
     after Timeout ->
             {error, {timeout, orddict:to_list(Acc)}}
     end.
@@ -187,6 +188,7 @@ stream_parts_acceptor(Pid,PidRef,done_parts) ->
 stream_parts_acceptor(Pid,PidRef,{{_Name, _Param, Part},Next}) ->
     {struct, Response} = mochijson2:decode(Part),
     Phase = proplists:get_value(<<"phase">>, Response),
+    io:format("RESPONSE: ˙~p~n", [Response]),
     Res = proplists:get_value(<<"data">>, Response),
     Pid ! {PidRef, {mapred, Phase, Res}},
     stream_parts_acceptor(Pid,PidRef,Next()).
