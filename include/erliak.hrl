@@ -12,9 +12,11 @@
 %% Connection references
 -type connection_ref() :: erliak_pb:pb_connection() | erliak_http:http_connection().
 -type proplist() :: [proplists:property()].
+
 %% ====================================================================
-%% Defines (from riakc_pb_socket.erl)
+%% Types (from riakc_pb_socket.erl)
 %% ====================================================================
+-type msg_id() :: non_neg_integer(). %% Request identifier for tunneled message types
 -type ctx() :: any().
 -type rpb_req() :: atom() | tuple().
 -type rpb_resp() :: atom() | tuple().
@@ -23,7 +25,7 @@
 -type address() :: string() | atom() | inet:ip_address(). %% The TCP/IP host name or address of the Riak node
 
 %% ====================================================================
-%% Defines (from riakc.hrl)
+%% Types (from riakc.hrl)
 %% ====================================================================
 
 -type client_option()  :: queue_if_disconnected | {queue_if_disconnected, boolean()} |

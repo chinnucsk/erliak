@@ -522,26 +522,7 @@ handle_call({client, Function, Arguments}, From, State) ->
     Reply = erliak_transport:handle(State, Function, Arguments),
     {reply, Reply, State};
 
-% handle_call({client, ping, Timeout}, _From, State) ->
-%     Reply = erliak_transport:ping(State, Timeout),
-%     {reply, Reply, State};
-
-% handle_call({client, get, Bucket, Key, Options, Timeout}, _From, State) ->
-%     Reply = erliak_transport:get(State, Bucket, Key, Options, Timeout),
-%     {reply, Reply, State};
-
-% handle_call({client, put, Object, Options, Timeout}, _From, State) ->
-%     Reply = erliak_transport:put(State, Object, Options, Timeout),
-%     {reply, Reply, State};
-
-% handle_call({client, delete, Bucket, Key, Options, Timeout}, _From, State) ->
-%     Reply = erliak_transport:delete(State, Bucket, Key, Options, Timeout),
-%     {reply, Reply, State};
-
-% handle_call({client, get_server_info, Timeout}, _From, State) ->
-%     Reply = erliak_transport:get_server_info(State, Timeout),
-%     {reply, Reply, State};
-
+%% Handling the stop callback
 handle_call(stop, _From, State) ->
     erliak_transport:handle(State, disconnect, []),
     {stop, normal, ok, State}.
