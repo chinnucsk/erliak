@@ -108,12 +108,65 @@ set_bucket(State, Bucket, BucketProps, _Timeout, _CallTimeout) ->
     Connection = State#connection.connection,
     e_set_bucket(Connection, Bucket, BucketProps).
 
+
+%% Auxiliary formatting function for individual {struct, KeyValuesStruct} structures
+format_aux({struct, KeyValuesStruct}) ->
+    [{Msg, {struct, KeyValues}}] = KeyValuesStruct,
+    AtomMsg = list_to_atom(binary_to_list(Msg)),
+    Bucket = proplists:get_value(<<"bucket">>, KeyValues),
+    Key = proplists:get_value(<<"key">>, KeyValues),
+    KeyData = proplists:get_value(<<"keydata">>, KeyValues),
+    {AtomMsg, {Bucket, Key}, KeyData};
+%% In the case of a simple data structure, simple return the values
+format_aux(Values) ->
+    Values.
+
+format_result({struct, [{<<"error">>,<<"notfound">>}]}) ->
+    [{error,notfound}];
+format_result(Structs) ->
+    [ format_aux(T) || T <- Structs ].    
+
+% e_mapred throws error:function_clause if given invalid Inputs
+% changed to correspond with PB's behaviour
 mapred(State, Inputs, Query, default_timeout, _CallTimeout) ->
-    Connection = State#connection.connection,
-    e_mapred(Connection, Inputs, Query);
+    Connection = State#connection.connection,    
+    try
+        {ok, [{N, Data}]} = e_mapred(Connection, Inputs, Query),        
+        Formatted = format_result(Data),         
+        {ok, [{N, Formatted}]}        
+    catch
+        % Malformed queries are reported differently
+        error:function_clause when Query == undefined ->
+            Msg = "{'query',{\"Query takes a list of step tuples\",undefined}}",
+            {error, erlang:iolist_to_binary(Msg)};
+        % Malformed inputs are reported differently
+        error:function_clause when is_list(Inputs) ->
+            Msg = io_lib:format("{inputs,{\"Inputs target tuples must be {B,K} or {{B,K},KeyData}:\",~p}}", [Inputs]),
+            {error, erlang:iolist_to_binary(Msg)};            
+        error:function_clause ->
+            Msg = io_lib:format("{inputs,{\"Inputs must be a binary bucket, a tuple of bucket and key-filters, a list of target tuples, or a search, index, or modfun tuple:\",\n         ~p}}", [Inputs]),
+            {error, erlang:iolist_to_binary(Msg)}            
+    end;
+            
 mapred(State, Inputs, Query, Timeout, _CallTimeout) ->
     Connection = State#connection.connection,
-    e_mapred(Connection, Inputs, Query, Timeout).
+    try
+        {ok, [{N, Data}]} = e_mapred(Connection, Inputs, Query, Timeout),
+        Formatted = format_result(Data),         
+        {ok, [{N, Formatted}]}        
+    catch
+        % Malformed queries are reported differently
+        error:function_clause when Query == undefined ->
+            Msg = "{'query',{\"Query takes a list of step tuples\",undefined}}",
+            {error, erlang:iolist_to_binary(Msg)};
+        % Malformed inputs are reported differently
+        error:function_clause when is_list(Inputs) ->
+            Msg = io_lib:format("{inputs,{\"Inputs target tuples must be {B,K} or {{B,K},KeyData}:\",~p}}", [Inputs]),
+            {error, erlang:iolist_to_binary(Msg)};            
+        error:function_clause ->
+            Msg = io_lib:format("{inputs,{\"Inputs must be a binary bucket, a tuple of bucket and key-filters, a list of target tuples, or a search, index, or modfun tuple:\",\n         ~p}}", [Inputs]),
+            {error, erlang:iolist_to_binary(Msg)}            
+    end.
 
 mapred_stream(State, Inputs, Query, ClientPid, default_timeout, _CallTimeout) ->
     Connection = State#connection.connection,
