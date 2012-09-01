@@ -466,19 +466,15 @@ test_suite() ->
             ?assertEqual({error, <<"{inputs,{\"Inputs target tuples must be {B,K} or {{B,K},KeyData}:\",[<<\"b\">>]}}">>},
                          Res)
 		end)}},
-	%% TODO OLD ASSERTION
-	% ?assertEqual({error,<<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}, Res)
-	% ACTUALLY RETURNS {error, {0, <<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}}
 	 {Transport ++ " - map reduce bad query",
       { setup,
 	fun setup/0,
 	fun cleanup/1,
-	?_test( begin
-			ok
-			% Res = erliak:mapred([{<<"b">>,<<"k">>}], % no {B,K} tuple
-   %      						 undefined),
-   %          ?assertEqual({error,{0, <<"{'query',{\"Query takes a list of step tuples\",undefined}}">>}},
-   %                       Res)
+	?_test( begin	
+			Res = erliak:mapred([{<<"b">>,<<"k">>}], % no {B,K} tuple
+        						 undefined),
+            ?assertEqual({error,<<"{'query',{\"Query takes a list of step tuples\",undefined}}">>},
+                         Res)
 		end)}},
 	 {Transport ++ " - javascript_source_map_reduce_test()",
       { setup,
