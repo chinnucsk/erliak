@@ -476,6 +476,9 @@ test_suite() ->
             ?assertEqual({error,<<"{'query',{\"Query takes a list of step tuples\",undefined}}">>},
                          Res)
 		end)}},
+
+	%% TODO mapred_stream, mapred_bucket_stream, search?
+
 	 {Transport ++ " - javascript_source_map_reduce_test()",
       { setup,
 	fun setup/0,
