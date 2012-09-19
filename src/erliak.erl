@@ -22,9 +22,6 @@
          search/2, search/4, search/5
          ]).
 
-%% debug
--export([do/1]).
-
 %% gen_server exports
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
       
@@ -33,66 +30,6 @@
 %% ==================================================================== 
 
 -include("erliak.hrl").
-
-storeGet() ->
-    Store = fun({K,V}) ->
-        O=riakc_obj:new(<<"bucket">>, K),
-        erliak:put(riakc_obj:update_value(O, V, "application/json"))
-    end,
-    [Store(KV) || KV <- [{<<"foo">>, <<"2">>},
-                         {<<"bar">>, <<"3">>},
-                         {<<"baz">>, <<"4">>}]],
-    erliak:mapred([{<<"bucket">>, <<"foo">>},
-                   {<<"bucket">>, <<"bar">>},
-                   {<<"bucket">>, <<"baz">>}],
-                  [{map, {modfun, riak_kv_mapreduce, map_object_value}, undefined, false},
-                   {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]).
-
-do(A) ->
-    % io:format("Connecting HTTP ... ~n"),
-    {ok, C} = erliak:start_link([{transport, http}]),        
-    % {ok, Results} = erliak:mapred([{<<"bucket">>, <<"foo">>},
-    %                                {<<"bucket">>, <<"bar">>},
-    %                                {<<"bucket">>, <<"baz">>}],
-    %                               [{map, {modfun, riak_kv_mapreduce, map_object_value}, <<"include_notfound">>, false},
-    %                                {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]),    
-    Results = erliak:mapred([{<<"b">>,<<"k">>}], undefined),
-    % {ok, Res} = erliak:mapred([{<<"bucket">>, <<"foo123123">>},
-    %                                        {<<"bucket">>, <<"bar123123">>},
-    %                                        {<<"bucket">>, <<"baz123123">>}],
-    %                                       [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
-    %                                        {reduce, {jsfun, <<"Riak.reduceSort">>}, undefined, true}]),                        
-
-    % {ok, R} = storeGet(),
-    % Res = erliak:mapred(A,
-    %                     [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
-    %                      {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]),
-    % Res = "aa",
-    erliak:stop(C),
-    io:format("*** HTTP results = ~n~p~n", [Results]),
-    % io:format("************ bad inputs HTTP ~p~n~n", [Res]),
-    % io:format("******* good result HTTP ~n~p~n", [R]),
-
-    % io:format("Connecting PB ... ~n"),
-    {ok, C2} = erliak:start_link([{transport, pb}]),        
-    % {ok, Results2} = erliak:mapred([{<<"bucket">>, <<"foo">>},
-    %                                {<<"bucket">>, <<"bar">>},
-    %                                {<<"bucket">>, <<"baz">>}],
-    %                               [{map, {modfun, riak_kv_mapreduce, map_object_value}, <<"include_notfound">>, false},
-    %                                {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, undefined, true}]),    
-    Results2 = erliak:mapred([{<<"b">>,<<"k">>}], undefined),
-    % Res2 = erliak:mapred(A,
-    %                     [{map, {jsfun, <<"Riak.mapValuesJson">>}, undefined, false},
-    %                      {reduce, {jsfun, <<"Riak.reduceSum">>}, undefined, true}]),
-        
-    erliak:stop(C2),
-    io:format("*** PB results = ~n~p~n", [Results2]),
-    % io:format("********** bad inputs PB = ~p~n", [Res2]),
-    % io:format("******* good result PB ~n~p~n", [R2]),
-    
-
-    ok.
-    
 
 %% ====================================================================
 %% Exports
@@ -551,7 +488,7 @@ init([Address, Port, Options, Caller]) ->
     erliak_transport:connect(Address, Port, Options, Caller).
     
 %% Handling client API callbacks
-handle_call({client, Function, Arguments}, From, State) ->    
+handle_call({client, Function, Arguments}, _From, State) ->    
     Reply = erliak_transport:handle(State, Function, Arguments),
     {reply, Reply, State};
 

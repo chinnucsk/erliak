@@ -34,7 +34,7 @@ behaviour_info(_Other) ->
     undefined.
 
 
-%% @doc returns the corresponding erliang transport module for Transport or
+%% @doc returns the corresponding erliak transport module for Transport or
 %%      ?DEFAULT_TRANSPORT if no Transport is given
 -spec get_transport_module(atom()) -> atom().
 get_transport_module(Transport) ->
@@ -80,35 +80,3 @@ handle(State, Function, Arguments) ->
     % Conn = State#connection.connection,
     CallArgs = [State|Arguments],
     erlang:apply(TModule, Function, CallArgs).
-
-% Refactoring
-
-% ping(State, Timeout) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:ping(Conn, Timeout).
-
-% get(State, Bucket, Key, Options, Timeout) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:get(Conn, Bucket, Key, Options, Timeout).
-
-% put(State, Object, Options, Timeout) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:put(Conn, Object, Options, Timeout).
-
-% delete(State, Bucket, Key, Options, Timeout) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:delete(Conn, Bucket, Key, Options, Timeout).
-
-% disconnect(State) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:disconnect(Conn).
-
-% get_server_info(State, Timeout) ->
-%     TModule = State#connection.transport_module,
-%     Conn = State#connection.connection,
-%     TModule:get_server_info(Conn, Timeout).
